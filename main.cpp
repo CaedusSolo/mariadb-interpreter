@@ -24,6 +24,7 @@ ofstream outputFile;
 
 vector<string> tokenize(const string&);
 void readFileInput();
+void createOutputFile(string&);
 void createTable(const vector<string> &);
 
 vector<string> tokenize(const string &line) {
@@ -49,7 +50,7 @@ vector<string> tokenize(const string &line) {
                 }
                 tokens.push_back(")"); // Add ')' as its own token
                 token = token.substr(closePos + 1); // Remaining part after ')'
-                
+
             } else {
                 tokens.push_back(token); // Add the full token if no '(' or ')'
                 token.clear(); // Break the loop
@@ -57,14 +58,12 @@ vector<string> tokenize(const string &line) {
         }
     }
 
-    // Debugging: Print tokens
     for (size_t i = 0; i < tokens.size(); ++i) {
         cout << "Token #" << i + 1 << ": " << tokens[i] << endl;
     }
 
     return tokens;
 }
-
 
 
 int main() {
@@ -86,7 +85,7 @@ void readFileInput() {
                 createTable(tokens);
             }
             else if (tokens[1].length() >= 4 && tokens[1].substr(tokens[1].length() - 5, 5) == ".txt;") {
-                cout << "Creating output file..." << endl;
+                createOutputFile(tokens[1]);
             }
         }
 
@@ -98,6 +97,22 @@ void readFileInput() {
 
     inputFile.close();
 }
+
+void createOutputFile(string &fileName) {
+    if (fileName.back() == ';') {
+        fileName.pop_back();
+    }
+    
+    outputFile.open(fileName);
+    if (outputFile.is_open()) {
+        cout << "Output file: " << fileName << " created successfully." << endl;
+    }
+    else {
+        cerr << "Failed to create output file." << endl;
+    }
+}
+
+
 
 void createTable(const vector<string> &tokens) {
     string tableName = tokens[2];
