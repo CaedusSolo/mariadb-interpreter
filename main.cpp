@@ -32,34 +32,39 @@ vector<string> tokenize(const string &line) {
     string token;
 
     while (getline(stream, token, ' ')) {
-        if (!token.empty()) {
-            size_t pos = token.find('(');
-            if (pos != string::npos) {
-                if (pos > 0) {
-                    tokens.push_back(token.substr(0, pos));
+        while (!token.empty()) {
+            size_t openPos = token.find('(');
+            size_t closePos = token.find(')');
+
+            if (openPos != string::npos) {
+                if (openPos > 0) {
+                    tokens.push_back(token.substr(0, openPos)); // Before '('
                 }
-                tokens.push_back("(");
-                if (pos + 1 < token.length()) {
-                    tokens.push_back(token.substr(pos + 1));
+                tokens.push_back("("); // Add '(' as its own token
+                token = token.substr(openPos + 1); // Remaining part after '('
+
+            } else if (closePos != string::npos) {
+                if (closePos > 0) {
+                    tokens.push_back(token.substr(0, closePos)); // Before ')'
                 }
+                tokens.push_back(")"); // Add ')' as its own token
+                token = token.substr(closePos + 1); // Remaining part after ')'
+                
             } else {
-                pos = token.find(')');
-                if (pos != string::npos) {
-                    if (pos > 0) {
-                        tokens.push_back(token.substr(0, pos));
-                    }
-                    tokens.push_back(")");
-                    if (pos + 1 < token.length()) {
-                        tokens.push_back(token.substr(pos + 1));
-                    }
-                } else {
-                    tokens.push_back(token);
-                }
+                tokens.push_back(token); // Add the full token if no '(' or ')'
+                token.clear(); // Break the loop
             }
         }
     }
+
+    // Debugging: Print tokens
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        cout << "Token #" << i + 1 << ": " << tokens[i] << endl;
+    }
+
     return tokens;
 }
+
 
 
 int main() {
@@ -76,13 +81,8 @@ void readFileInput() {
         if (line.empty()) continue;  //  skip tokenization for empty lines
         vector<string> tokens = tokenize(line);
 
-        for (int i = 0; i < tokens.size(); i++) {
-            cout << tokens[i] << endl;
-        }
-
         if (!tokens.empty() && tokens[0] == "CREATE") {
             if (tokens[1] == "TABLE") {
-                cout << "This is a table creation operation." << endl;
                 createTable(tokens);
             }
             else if (tokens[1].length() >= 4 && tokens[1].substr(tokens[1].length() - 5, 5) == ".txt;") {
