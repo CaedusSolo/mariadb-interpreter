@@ -8,7 +8,7 @@
 //  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my | 011-10988658
 //  ************************************************************************************************
 //  Task Distribution
-//  Member_1:
+//  Member_1: Read input file, tokenization, create table, insert into table
 //  Member_2: 
 //  ************************************************************************************************
 
@@ -18,6 +18,7 @@
 #include <vector>
 #include <sstream>
 #include <cctype>
+#include <algorithm>
 using namespace std;
 
 ifstream inputFile;
@@ -39,6 +40,7 @@ vector<string> tokenize(const string&);
 void readFileInput();
 void createOutputFile(string&);
 void createTable(vector<string> &);
+void insertIntoTable(vector<string> &);
 
 Table table;
 
@@ -177,7 +179,6 @@ void readFileInput() {
 
     vector<string> allTokens = tokenize(fileContent);
 
-    // Now you have all tokens, process them
     for (size_t i = 0; i < allTokens.size(); ++i) {
         if (allTokens[i] == "CREATE") {
             if (allTokens[i + 1] == "TABLE") {
@@ -193,7 +194,14 @@ void readFileInput() {
                 createOutputFile(allTokens[i + 1]);
             }
         } else if (allTokens[i] == "INSERT" && allTokens[i + 1] == "INTO") {
-            cout << "Table insertion operation..." << endl;
+            vector<string> insertIntoTableTokens;
+            size_t j = i;
+            while (j < allTokens.size() && allTokens[j] != ";") {
+                insertIntoTableTokens.push_back(allTokens[j]);
+                j++;
+            }
+            insertIntoTable(insertIntoTableTokens);
+            i = j;
         }
     }
 }
@@ -234,5 +242,74 @@ void createTable(vector<string> &tokens) {
     for (const auto &col : table.tableColumns) {
         cout << "- " << col.columnName << " (" << col.columnType << ")" << endl;
     }
+
+}
+
+void insertIntoTable(vector<string> &tokens) {
+    // for (size_t i = 0; i < tokens.size(); i++) {
+    //     cout << "insertIntoTable Token: " << tokens[i] << endl;
+    // }      
+
+    //  output for above for loop:
+
+// insertIntoTable Token: INSERT
+// insertIntoTable Token: INTO
+// insertIntoTable Token: customer
+// insertIntoTable Token: (
+// insertIntoTable Token: customer_id
+// insertIntoTable Token: ,
+// insertIntoTable Token: customer_name
+// insertIntoTable Token: ,
+// insertIntoTable Token: customer_city
+// insertIntoTable Token: ,
+// insertIntoTable Token: customer_state
+// insertIntoTable Token: ,
+// insertIntoTable Token: customer_country
+// insertIntoTable Token: ,
+// insertIntoTable Token: customer_phone
+// insertIntoTable Token: ,
+// insertIntoTable Token: customer_email
+// insertIntoTable Token: )
+// insertIntoTable Token: VALUES
+// insertIntoTable Token: (
+// insertIntoTable Token: 1
+// insertIntoTable Token: ,
+// insertIntoTable Token: 'name1'
+// insertIntoTable Token: ,
+// insertIntoTable Token: 'city1'
+// insertIntoTable Token: ,
+// insertIntoTable Token: 'state1'
+// insertIntoTable Token: ,
+// insertIntoTable Token: 'country1'
+// insertIntoTable Token: ,
+// insertIntoTable Token: 'phone1'
+// insertIntoTable Token: ,
+// insertIntoTable Token: 'email1'
+// insertIntoTable Token: )
+    vector<string> row;
+    auto iterator = find(tokens.begin(), tokens.end(), "VALUES");
+    int index;
+
+    if (iterator != tokens.end()) {
+        index = distance(tokens.begin(), iterator) + 2;
+    }
+
+    for (size_t i = index; i < tokens.size(); i++) {
+        if (tokens[i] != "," && tokens[i] != ")") {
+            row.push_back(tokens[i]);
+        }
+    }
+
+    for (int i = 0; i < row.size(); i++) {
+        cout << "Row token: " << row[i] << endl;
+    }
+// Output of above for loop:
+// Row token: 1
+// Row token: 'name1'
+// Row token: 'city1'
+// Row token: 'state1'
+// Row token: 'country1'
+// Row token: 'phone1'
+// Row token: 'email1'
 
 }
