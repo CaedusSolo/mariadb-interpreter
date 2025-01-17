@@ -431,11 +431,6 @@ void updateTable(vector<string>& tokens) {
         }
     }
 
-    if (updated) {
-        cout << "Table updated successfully." << endl;
-    } else {
-        cout << "No rows found to update." << endl;
-    }
 }
 
 void deleteFromTable(vector<string>& tokens) {
