@@ -47,6 +47,9 @@ void countRows(vector<string>& tokens);
 void selectFromTable();
 string removeQuotesFromStringLit(string &);
 
+void OutputFile();
+void handleSelect();
+
 Table table;
 //  This is what the Table struct looks like:
 //  {
@@ -178,13 +181,11 @@ void readFileInput() {
     }
 
     stringstream buffer;
-    buffer << inputFile.rdbuf(); 
+    buffer << inputFile.rdbuf();
     string fileContent = buffer.str();
     inputFile.close();
 
     vector<string> allTokens = tokenize(fileContent);
-
-    bool isTableModified = false;
 
     for (size_t i = 0; i < allTokens.size(); ++i) {
         if (allTokens[i] == "CREATE") {
@@ -197,28 +198,17 @@ void readFileInput() {
                 }
                 createTable(createTableTokens);
                 i = j;
-            } else if (allTokens[i + 1].length() >= 4 && allTokens[i + 1].substr(allTokens[i + 1].length() - 5, 5) == ".txt;") {
+            } else if (allTokens[i + 1].find(".txt") != string::npos) {
                 createOutputFile(allTokens[i + 1]);
             }
         } else if (allTokens[i] == "INSERT" && allTokens[i + 1] == "INTO") {
-            vector<string> insertIntoTableTokens;
+            vector<string> insertTokens;
             size_t j = i;
             while (j < allTokens.size() && allTokens[j] != ";") {
-                insertIntoTableTokens.push_back(allTokens[j]);
+                insertTokens.push_back(allTokens[j]);
                 j++;
             }
-            insertIntoTable(insertIntoTableTokens);
-            isTableModified = true;
-            i = j;
-        } else if (allTokens[i] == "UPDATE") {
-            vector<string> updateTokens;
-            size_t j = i;
-            while (j < allTokens.size() && allTokens[j] != ";") {
-                updateTokens.push_back(allTokens[j]);
-                j++;
-            }
-            updateTable(updateTokens);
-            isTableModified = true;
+            insertIntoTable(insertTokens);
             i = j;
         } else if (allTokens[i] == "DELETE") {
             vector<string> deleteTokens;
@@ -228,21 +218,21 @@ void readFileInput() {
                 j++;
             }
             deleteFromTable(deleteTokens);
-            isTableModified = true;
             i = j;
-        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "COUNT(*)" && allTokens[i + 2] == "FROM") {
-            vector<string> countTokens(allTokens.begin() + i, allTokens.end());
-            countRows(countTokens);  
-        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "*") {
-            selectFromTable();
+        } else if (allTokens[i] == "SELECT") {
+            handleSelect();
+        } else if (allTokens[i] == "UPDATE") {
+            vector<string> updateTokens;
+            size_t j = i;
+            while (j < allTokens.size() && allTokens[j] != ";") {
+                updateTokens.push_back(allTokens[j]);
+                j++;
+            }
+            updateTable(updateTokens);
+            i = j;
         }
     }
-
-    if (isTableModified) {
-        selectFromTable(); 
-    }
 }
-
 
 void createOutputFile(string &fileName) {
     if (fileName.back() == ';') {
@@ -257,7 +247,6 @@ void createOutputFile(string &fileName) {
         cerr << "Failed to create output file." << endl;
     }
 }
-
 
 void createTable(vector<string> &tokens) { 
     string tableName = tokens[2];
@@ -460,6 +449,7 @@ void updateTable(vector<string>& tokens) {
             }
         }
     }
+    OutputFile();
 
 }
 
@@ -501,6 +491,7 @@ void deleteFromTable(vector<string>& tokens) {
                   [&](const vector<string>& row) { return row[columnIndex] == values; }),
         table.tableRows.end()
     );
+    OutputFile();
 }
 
 void countRows(vector<string>& tokens) {
@@ -516,5 +507,63 @@ void countRows(vector<string>& tokens) {
 
     } else {
         cout << "Cannot Count" << endl;
+    }
+    OutputFile();
+}
+
+void OutputFile() {
+    if (!outputFile.is_open()) {
+        cerr << "Output file is not open!" << endl;
+        return;
+    }
+
+    outputFile.clear();
+    outputFile.seekp(0, ios::beg); 
+
+   
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+        outputFile << table.tableColumns[i].columnName;
+        if (i != table.tableColumns.size() - 1) {
+            outputFile << ",";
+        }
+    }
+    outputFile << endl;
+
+
+    for (const auto& row : table.tableRows) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            outputFile << row[i];
+            if (i != row.size() - 1) {
+                outputFile << ",";
+            }
+        }
+        outputFile << endl;
+    }
+}
+
+void handleSelect() {
+    if (!outputFile.is_open()) {
+        cerr << "Output file is not open!" << endl;
+        return;
+    }
+
+    
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+        outputFile << table.tableColumns[i].columnName;
+        if (i != table.tableColumns.size() - 1) {
+            outputFile << ",";
+        }
+    }
+    outputFile << endl;
+
+   
+    for (const auto& row : table.tableRows) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            outputFile << row[i];
+            if (i != row.size() - 1) {
+                outputFile << ",";
+            }
+        }
+        outputFile << endl;
     }
 }
