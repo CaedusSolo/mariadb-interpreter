@@ -15,3 +15,9 @@ TABLES;
 INSERT INTO customer(
     customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
 ) VALUES (1,'name1','city1','state1','country1','phone1','email1');
+
+INSERT INTO customer(
+    customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
+) VALUES (2,'name2','city2','state2','country2','phone2','email2');
+
+SELECT * FROM customer;
