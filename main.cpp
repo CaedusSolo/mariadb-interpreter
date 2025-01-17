@@ -48,7 +48,7 @@ void selectFromTable();
 string removeQuotesFromStringLit(string &);
 
 void OutputFile();
-void handleSelect();
+void Select();
 
 Table table;
 //  This is what the Table struct looks like:
@@ -220,7 +220,7 @@ void readFileInput() {
             deleteFromTable(deleteTokens);
             i = j;
         } else if (allTokens[i] == "SELECT") {
-            handleSelect();
+            Select();
         } else if (allTokens[i] == "UPDATE") {
             vector<string> updateTokens;
             size_t j = i;
@@ -449,7 +449,7 @@ void updateTable(vector<string>& tokens) {
             }
         }
     }
-    OutputFile();
+   
 
 }
 
@@ -491,7 +491,7 @@ void deleteFromTable(vector<string>& tokens) {
                   [&](const vector<string>& row) { return row[columnIndex] == values; }),
         table.tableRows.end()
     );
-    OutputFile();
+   
 }
 
 void countRows(vector<string>& tokens) {
@@ -517,23 +517,24 @@ void OutputFile() {
         return;
     }
 
-    outputFile.clear();
-    outputFile.seekp(0, ios::beg); 
-
    
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
         outputFile << table.tableColumns[i].columnName;
-        if (i != table.tableColumns.size() - 1) {
+        if (i + 1 < table.tableColumns.size()) { 
             outputFile << ",";
         }
     }
     outputFile << endl;
 
-
-    for (const auto& row : table.tableRows) {
-        for (size_t i = 0; i < row.size(); ++i) {
-            outputFile << row[i];
-            if (i != row.size() - 1) {
+ 
+    for (size_t i = 0; i < table.tableRows.size(); ++i) {
+        for (size_t j = 0; j < table.tableRows[i].size(); ++j) {
+            if (table.tableColumns[j].columnType == "TEXT") {
+                outputFile << removeQuotesFromStringLit(table.tableRows[i][j]);
+            } else {
+                outputFile << table.tableRows[i][j];
+            }
+            if (j + 1 < table.tableRows[i].size()) { 
                 outputFile << ",";
             }
         }
@@ -541,7 +542,8 @@ void OutputFile() {
     }
 }
 
-void handleSelect() {
+
+void Select() {
     if (!outputFile.is_open()) {
         cerr << "Output file is not open!" << endl;
         return;
