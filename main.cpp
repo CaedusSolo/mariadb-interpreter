@@ -41,6 +41,8 @@ void readFileInput();
 void createOutputFile(string&);
 void createTable(vector<string> &);
 void insertIntoTable(vector<string> &);
+void selectFromTable();
+string removeQuotesFromStringLit(string &);
 
 Table table;
 //  This is what the Table struct looks like:
@@ -217,6 +219,8 @@ void readFileInput() {
             }
             insertIntoTable(insertIntoTableTokens);
             i = j;
+        } else if (allTokens[i] == "SELECT" && allTokens[i+1] == "*" && allTokens[i+2] == "FROM") {
+            selectFromTable();
         }
     }
 }
@@ -238,7 +242,6 @@ void createOutputFile(string &fileName) {
 
 void createTable(vector<string> &tokens) { 
     string tableName = tokens[2];
-    table.tableColumns.clear();
 
     table.tableName = tableName;  //  set tableName in Table struct
     
@@ -257,7 +260,6 @@ void createTable(vector<string> &tokens) {
     for (const auto &col : table.tableColumns) {
         cout << "- " << col.columnName << " (" << col.columnType << ")" << endl;
     }
-
 }
 
 void insertIntoTable(vector<string> &tokens) {
@@ -351,4 +353,36 @@ void insertIntoTable(vector<string> &tokens) {
 // Column in Table: customer_country
 // Column in Table: customer_phone
 // Column in Table: customer_email
+}
+
+void selectFromTable() {
+    for (size_t i = 0; i < table.tableColumns.size(); i++) {
+        cout << table.tableColumns[i].columnName;
+        if (i + 1 < table.tableColumns.size()) { // Only add a comma if not the last element
+            cout << ",";
+        }
+    }
+    cout << endl;
+
+    for (size_t i = 0; i < table.tableRows.size(); i++) {
+        for (size_t j = 0; j < table.tableRows[i].size(); j++) {
+            if (table.tableColumns[j].columnType == "TEXT") {
+                cout << removeQuotesFromStringLit(table.tableRows[i][j]);
+            }
+            else {
+                cout << table.tableRows[i][j];
+            }
+            if (j + 1 < table.tableRows[i].size()) { // Only add a comma if not the last element
+                cout << ",";
+            }
+        }
+        cout << endl;
+    }
+}
+
+string removeQuotesFromStringLit(string& str) {
+    if (str.front() == '\'' && str.back() == '\'') {
+        return str.substr(1, str.size() - 2);
+    }
+    return str;
 }
