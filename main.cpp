@@ -43,6 +43,21 @@ void createTable(vector<string> &);
 void insertIntoTable(vector<string> &);
 
 Table table;
+//  This is what the Table struct looks like:
+//  {
+//     "customer", // Table name
+//     {
+//         {"customer_id", "INT"},
+//         {"customer_name", "TEXT"},
+//         {"customer_city", "TEXT"},
+//         {"customer_state", "TEXT"},
+//     }, // Columns
+
+//     {
+//         {"1", "'Alice'", "'NYC'", "'NY'"},
+//         {"2", "'Bob'", "'LA'", "'CA'"},
+//     } // Rows
+// };
 
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
@@ -300,9 +315,15 @@ void insertIntoTable(vector<string> &tokens) {
         }
     }
 
-    for (int i = 0; i < row.size(); i++) {
-        cout << "Row token: " << row[i] << endl;
+    if (row.size() == table.tableColumns.size()) {
+        table.tableRows.push_back(row);
     }
+
+
+ // for (int i = 0; i < row.size(); i++) {
+ //     cout << "Row token: " << row[i] << endl;
+//     cout << "Column In Table: " << table.tableColumns[i].columnName << endl;
+// }
 // Output of above for loop:
 // Row token: 1
 // Row token: 'name1'
@@ -312,4 +333,16 @@ void insertIntoTable(vector<string> &tokens) {
 // Row token: 'phone1'
 // Row token: 'email1'
 
+    // for (const Column& col : table.tableColumns) {
+    //     cout << "Column in Table: " << col.columnName << endl;
+    // }
+
+    
+// Column in Table: customer_id
+// Column in Table: customer_name
+// Column in Table: customer_city
+// Column in Table: customer_state
+// Column in Table: customer_country
+// Column in Table: customer_phone
+// Column in Table: customer_email
 }
