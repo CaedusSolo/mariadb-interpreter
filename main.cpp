@@ -41,6 +41,7 @@ void readFileInput();
 void createOutputFile(string&);
 void createTable(vector<string> &);
 void insertIntoTable(vector<string> &);
+void deleteFromTable(vector<string>&);
 
 Table table;
 //  This is what the Table struct looks like:
@@ -181,7 +182,7 @@ int main() {
 }
 
 void readFileInput() {
-    inputFile.open("fileInput1.mdb");
+    inputFile.open("fileInput2.mdb");
     if (!inputFile.is_open()) {
         cerr << "Error opening input file." << endl;
         return;
@@ -351,4 +352,38 @@ void insertIntoTable(vector<string> &tokens) {
 // Column in Table: customer_country
 // Column in Table: customer_phone
 // Column in Table: customer_email
+}
+
+
+void deleteFromTable(vector<string> & tokens){
+
+    string columnName,values;
+
+    for (size_t i = 0; i < tokens.size(); ++i){
+        if (tokens[i] == "WHERE"){
+            columnName = tokens[i + 1].substr(0,tokens[i + 1].find('='));
+            values = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
+            break;
+        }
+    }
+
+    size_t columnIndex = -1;
+
+    for (size_t i = 0;i < table.tableColumns.size();++i){
+        if (table.tableColumns[i].columnName == columnName) {
+            columnIndex = i;
+            break;
+        }
+    }
+
+    if (columnIndex == -1){
+        cout << "Did not found this column"<< columnName << endl;
+        return;
+    }
+
+    table.tableRows.erase(
+        remove_if(table.tableRows.begin(),table.tableRows.end(),
+        [&](const vector<string>& row) {return row[columnIndex] == values; }),
+        table.tableRows.end()
+    );
 }
