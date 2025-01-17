@@ -303,6 +303,12 @@ void insertIntoTable(vector<string> &tokens) {
 // insertIntoTable Token: )
     vector<string> row;
     auto iterator = find(tokens.begin(), tokens.end(), "VALUES");
+
+    if (iterator == tokens.end() || distance(tokens.begin(), iterator) + 2 >= tokens.size()) {
+        cerr << "Error: VALUES keyword missing or improperly formatted insert statement." << endl;
+        return;
+}
+
     int index;
 
     if (iterator != tokens.end()) {
