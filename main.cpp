@@ -41,6 +41,9 @@ void readFileInput();
 void createOutputFile(string&);
 void createTable(vector<string> &);
 void insertIntoTable(vector<string> &);
+void updateTable(vector<string>&);
+void deleteFromTable(vector<string>&);
+void countRows(vector<string>& tokens);
 void selectFromTable();
 string removeQuotesFromStringLit(string &);
 
@@ -73,27 +76,12 @@ vector<string> tokenize(const string& input) {
                 tokens.push_back(token);
                 token.clear();
             }
-        } else if (c == '(' || c == ')' || c == ',' || c == ';' || c == '*') { // Handle delimiters
+        } else if (c == '(' || c == ')' || c == ',' || c == ';' || c == '*') {
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
             }
-            tokens.push_back(string(1, c)); // Add the delimiter as a token
-        } else if (c == '\'') { // Handle string literals
-            if (!token.empty()) {
-                tokens.push_back(token);
-                token.clear();
-            }
-            string str_lit;
-            while (ss.get(c)) {
-                if (c == '\'') {
-                    tokens.push_back("'" + str_lit + "'");
-                    str_lit.clear();
-                    break;
-                } else {
-                    str_lit += c;
-                }
-            }
+            tokens.push_back(string(1, c));
         } else {
             token += c;
         }
@@ -183,25 +171,27 @@ int main() {
 }
 
 void readFileInput() {
-    inputFile.open("fileInput1.mdb");
+    inputFile.open("fileInput2.mdb");
     if (!inputFile.is_open()) {
         cerr << "Error opening input file." << endl;
         return;
     }
 
     stringstream buffer;
-    buffer << inputFile.rdbuf(); // Read entire file into buffer
+    buffer << inputFile.rdbuf(); 
     string fileContent = buffer.str();
     inputFile.close();
 
     vector<string> allTokens = tokenize(fileContent);
+
+    bool isTableModified = false;
 
     for (size_t i = 0; i < allTokens.size(); ++i) {
         if (allTokens[i] == "CREATE") {
             if (allTokens[i + 1] == "TABLE") {
                 vector<string> createTableTokens;
                 size_t j = i;
-                while(j < allTokens.size() && allTokens[j] != ";"){
+                while (j < allTokens.size() && allTokens[j] != ";") {
                     createTableTokens.push_back(allTokens[j]);
                     j++;
                 }
@@ -218,12 +208,41 @@ void readFileInput() {
                 j++;
             }
             insertIntoTable(insertIntoTableTokens);
+            isTableModified = true;
             i = j;
-        } else if (allTokens[i] == "SELECT" && allTokens[i+1] == "*" && allTokens[i+2] == "FROM") {
+        } else if (allTokens[i] == "UPDATE") {
+            vector<string> updateTokens;
+            size_t j = i;
+            while (j < allTokens.size() && allTokens[j] != ";") {
+                updateTokens.push_back(allTokens[j]);
+                j++;
+            }
+            updateTable(updateTokens);
+            isTableModified = true;
+            i = j;
+        } else if (allTokens[i] == "DELETE") {
+            vector<string> deleteTokens;
+            size_t j = i;
+            while (j < allTokens.size() && allTokens[j] != ";") {
+                deleteTokens.push_back(allTokens[j]);
+                j++;
+            }
+            deleteFromTable(deleteTokens);
+            isTableModified = true;
+            i = j;
+        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "COUNT(*)" && allTokens[i + 2] == "FROM") {
+            vector<string> countTokens(allTokens.begin() + i, allTokens.end());
+            countRows(countTokens);  
+        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "*") {
             selectFromTable();
         }
     }
+
+    if (isTableModified) {
+        selectFromTable(); 
+    }
 }
+
 
 void createOutputFile(string &fileName) {
     if (fileName.back() == ';') {
@@ -385,4 +404,117 @@ string removeQuotesFromStringLit(string& str) {
         return str.substr(1, str.size() - 2);
     }
     return str;
+}
+
+void updateTable(vector<string>& tokens) {
+    string columnUpdate, newValue, conditionColumn, conditionValue;
+
+   
+    for (size_t i = 0; i < tokens.size(); ++i) {
+
+        if (tokens[i] == "SET") {
+            columnUpdate = tokens[i + 1].substr(0, tokens[i + 1].find('='));
+            newValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
+
+            if (newValue.front() == '\'' && newValue.back() == '\'') {
+                newValue = newValue.substr(1, newValue.size() - 2); 
+            }
+
+        } else if (tokens[i] == "WHERE") {
+
+            conditionColumn = tokens[i + 1].substr(0, tokens[i + 1].find('='));
+            conditionValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
+
+            if (conditionValue.front() == '\'' && conditionValue.back() == '\'') {
+                conditionValue = conditionValue.substr(1, conditionValue.size() - 2); 
+            }
+
+        }
+    
+    }
+
+    size_t updateColumnIndex = -1, conditionColumnIndex = -1;
+
+   
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+
+        if (table.tableColumns[i].columnName == columnUpdate) {
+            updateColumnIndex = i;
+        }
+
+        if (table.tableColumns[i].columnName == conditionColumn) {
+            conditionColumnIndex = i;
+        }
+    }
+
+
+    bool updated = false; 
+
+    if (updateColumnIndex != -1 && conditionColumnIndex != -1) {
+
+        for (auto& row : table.tableRows) {
+
+            if (row[conditionColumnIndex] == conditionValue) {
+                row[updateColumnIndex] = newValue;  
+                updated = true;
+            }
+        }
+    }
+
+}
+
+void deleteFromTable(vector<string>& tokens) {
+    string columnName, values;
+
+    
+    for (size_t i = 0; i < tokens.size(); ++i) {
+
+        if (tokens[i] == "WHERE") {
+            columnName = tokens[i + 1].substr(0, tokens[i + 1].find('='));
+            values = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
+
+            if (values.front() == '\'' && values.back() == '\'') {
+                values = values.substr(1, values.size() - 2); 
+            }
+            break;
+        }
+    }
+
+    size_t columnIndex = -1;
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+
+        if (table.tableColumns[i].columnName == columnName) {
+            columnIndex = i;
+            break;
+        }
+    }
+
+    if (columnIndex == -1) {
+
+        cout << "Did not find this column " << columnName << endl;
+        return;
+    }
+
+ 
+    table.tableRows.erase(
+        remove_if(table.tableRows.begin(), table.tableRows.end(),
+                  [&](const vector<string>& row) { return row[columnIndex] == values; }),
+        table.tableRows.end()
+    );
+}
+
+void countRows(vector<string>& tokens) {
+    if (tokens.size() >= 4 && tokens[0] == "SELECT" && tokens[1] == "COUNT(*)" && tokens[2] == "FROM") {
+        string tableName = tokens[3];
+
+        if (tableName == table.tableName) {
+            cout << table.tableRows.size() << endl;  
+
+        } else {
+            cout << "Did not find " << tableName << endl;
+        }
+
+    } else {
+        cout << "Cannot Count" << endl;
+    }
 }
