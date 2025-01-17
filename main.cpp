@@ -236,7 +236,7 @@ void createOutputFile(string &fileName) {
 }
 
 
-void createTable(vector<string> &tokens) {
+void createTable(vector<string> &tokens) { 
     string tableName = tokens[2];
     table.tableColumns.clear();
 
