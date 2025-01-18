@@ -8,8 +8,8 @@
 //  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my | 011-10988658
 //  ************************************************************************************************
 //  Task Distribution
-//  Member_1: Read input file, tokenization, create table, insert into table
-//  Member_2: Delete from table, update table, count table rows, write to output file
+//  Member_1: Read input file, tokenization, create table, insert into table, write to output file
+//  Member_2: Delete from table, update table, count table rows, flowchart
 //  ************************************************************************************************
 
 #include <iostream>
@@ -20,6 +20,7 @@
 #include <cctype>
 #include <algorithm>
 #include <typeinfo>
+#include <filesystem>
 using namespace std;
 
 ifstream inputFile;
@@ -36,7 +37,10 @@ struct Table {
     vector<vector<string>> tableRows;
 };
 
+vector<string> inputContent;
+vector<string> outputContent;
 
+//  function prototypes
 vector<string> tokenize(const string&);
 void readFileInput();
 void createOutputFile(string&);
@@ -49,8 +53,7 @@ void selectFromTable();
 bool validateRowData(const vector<string>&);
 bool isInteger(const string&);
 string removeQuotesFromStringLit(string &);
-
-void OutputFile();
+void writeToOutputFile();
 
 
 Table table;
@@ -101,9 +104,9 @@ vector<string> tokenize(const string& input) {
     return tokens;
 }
 
-
 int main() {
     readFileInput();
+    writeToOutputFile();
     return 0;
 }
 
@@ -156,9 +159,8 @@ void readFileInput() {
             deleteFromTable(deleteTokens);
             i = j;
             
-        } else if (allTokens[i] == "SELECT") {
-            OutputFile();
-        } else if (allTokens[i] == "UPDATE") {
+        } 
+         else if (allTokens[i] == "UPDATE") {
             vector<string> updateTokens;
             size_t j = i;
 
@@ -173,22 +175,26 @@ void readFileInput() {
 }
 
 void createOutputFile(string &fileName) {
+    ostringstream oss;
+    
     if (fileName.back() == ';') {
         fileName.pop_back();
     }
     
     outputFile.open(fileName);
     if (outputFile.is_open()) {
-        cout << "Output file: " << fileName << " created successfully." << endl;
+        oss << "Output file " << fileName << " created successfully!";
+        outputContent.push_back(oss.str());
     }
     else {
-        cerr << "Failed to create output file." << endl;
+        outputContent.push_back("Failed to created output file.");
         return;
     }
 }
 
 void createTable(vector<string> &tokens) { 
     string tableName = tokens[2];
+    ostringstream oss;
 
     table.tableName = tableName;  //  set tableName in Table struct
     
@@ -200,12 +206,15 @@ void createTable(vector<string> &tokens) {
         }
 
         if (columnType != "INT" && columnType != "TEXT") {
-            cerr << "ERROR: Unsupported column type '" << columnType << "'. " << endl << "Supported types are INT and TEXT." << endl;
+            oss << "ERROR: Unsupported column type '" << columnType << "'. " << endl << "Supported types are INT and TEXT.";
+            outputContent.push_back(oss.str());
             return;
         }
 
         Column column = {columnName, columnType};
         table.tableColumns.push_back(column);
+
+        outputContent.push_back("null");
     }
 }
 
@@ -254,7 +263,7 @@ void insertIntoTable(vector<string> &tokens) {
     auto iterator = find(tokens.begin(), tokens.end(), "VALUES");
 
     if (iterator == tokens.end() || distance(tokens.begin(), iterator) + 2 >= tokens.size()) {
-        cerr << "Error: VALUES keyword missing or invalid INSERT syntax." << endl;
+        outputContent.push_back("Error: VALUES keyword missing or invalid INSERT syntax." );
         return;
     }
 
@@ -270,12 +279,13 @@ void insertIntoTable(vector<string> &tokens) {
 
     // Validate the row data based on column types
     if (!validateRowData(row)) {
-        cerr << "Invalid data types in row. Insert operation aborted." << endl;
+        outputContent.push_back("Invalid data types in row. Insert operation aborted.");
         return;
     }
 
     // Now, insert the row into table's rows
     table.tableRows.push_back(row);
+    outputContent.push_back("null");
 
  // for (int i = 0; i < row.size(); i++) {
  //     cout << "Row token: " << row[i] << endl;
@@ -306,7 +316,7 @@ void insertIntoTable(vector<string> &tokens) {
 
 void selectFromTable() {
     if (table.tableName.empty()) {
-        cerr << "No table has been created." << endl;
+        outputContent.push_back("The table does not exist.");
         return;
     }
 
@@ -326,13 +336,20 @@ void selectFromTable() {
     for (size_t i = 0; i < table.tableRows.size(); i++) {
         for (size_t j = 0; j < table.tableRows[i].size(); j++) {
             if (table.tableColumns[j].columnType == "TEXT") {
-                cout << removeQuotesFromStringLit(table.tableRows[i][j]);
+                if (j + 1 < table.tableRows[i].size()) {
+                    outputContent.push_back(removeQuotesFromStringLit(table.tableRows[i][j]) + ",");
+                }
+                else {
+                    outputContent.push_back(removeQuotesFromStringLit(table.tableRows[i][j]));
+                }
             }
             else {
-                cout << table.tableRows[i][j];
-            }
-            if (j + 1 < table.tableRows[i].size()) { // Only add a comma if not the last element
-                cout << ",";
+                if (j + 1 < table.tableRows[i].size()) {
+                    outputContent.push_back(table.tableRows[i][j] + ",");
+                }
+                else {
+                    outputContent.push_back(table.tableRows[i][j]);
+                }
             }
         }
         cout << endl;
@@ -348,7 +365,7 @@ string removeQuotesFromStringLit(string& str) {
 
 void updateTable(vector<string>& tokens) {
     if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
-        cerr << "ERROR: Missing WHERE clause" << endl;
+        outputContent.push_back("ERROR: Invalid UPDATE syntax.");
         return;
     }
 
@@ -393,22 +410,18 @@ void updateTable(vector<string>& tokens) {
             }
         }
     }
-
-
-    outputFile << "> UPDATE " << table.tableName << " SET " << columnUpdate << "=" << "'" << newValue << "'" << " WHERE " << conditionColumn << "=" << "'" << conditionValue << "';" << endl;
-
-  
+    outputContent.push_back("null");
 }
 
 void deleteFromTable(vector<string>& tokens) {
 
     if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
-        cerr << "ERROR: Missing WHERE clause" << endl;
+        outputContent.push_back("ERROR: Invalid DELETE syntax.");
         return;
     }
 
     string columnName, values;
-
+    ostringstream oss;
     
     for (size_t i = 0; i < tokens.size(); ++i) {
 
@@ -423,8 +436,8 @@ void deleteFromTable(vector<string>& tokens) {
         }
     }
 
-    size_t columnIndex = -1;
-    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+    int columnIndex = -1;
+    for (int i = 0; i < table.tableColumns.size(); ++i) {
 
         if (table.tableColumns[i].columnName == columnName) {
             columnIndex = i;
@@ -433,8 +446,8 @@ void deleteFromTable(vector<string>& tokens) {
     }
 
     if (columnIndex == -1) {
-
-        cout << "Did not find this column " << columnName << endl;
+        oss << "Did not find this column " << columnName;
+        outputContent.push_back(oss.str());
         return;
     }
 
@@ -444,55 +457,28 @@ void deleteFromTable(vector<string>& tokens) {
                   [&](const vector<string>& row) { return row[columnIndex] == values; }),
         table.tableRows.end()
     );
-   outputFile << "> DELETE FROM " << table.tableName << " WHERE " << columnName << "=" << "'" << values << "';" << endl;
+
+    outputContent.push_back("null");
 }
 
 void countRows(vector<string>& tokens) {
+    ostringstream oss;
     if (tokens.size() >= 4 && tokens[0] == "SELECT" && tokens[1] == "COUNT(*)" && tokens[2] == "FROM") {
         string tableName = tokens[3];
 
         if (tableName == table.tableName) {
-            cout << table.tableRows.size() << endl;  
-
+            oss << table.tableRows.size();
+            outputContent.push_back(oss.str());
         } else {
-            cout << "ERROR: Table '" << tableName << "' does not exist." << endl;
-            return;
+            oss << "ERROR: Table '" << tableName << "' does not exist.";
+            outputContent.push_back(oss.str());
         }
 
     } else {
-        cout << "Cannot Count" << endl;
-    }
-    outputFile << "> SELECT COUNT(*) FROM " << table.tableName << endl;
-}
-
-
-void OutputFile() {
-    if (!outputFile.is_open()) {
-        cerr << "Output file is not open!" << endl;
-        return;
-    }
-
-    outputFile << "> SELECT * FROM " << table.tableName << "; " << endl;
-
-    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-        outputFile << table.tableColumns[i].columnName;
-        if (i != table.tableColumns.size() - 1) {
-            outputFile << ",";
-        }
-    }
-    outputFile << endl;
-
-   
-    for (const auto& row : table.tableRows) {
-        for (size_t i = 0; i < row.size(); ++i) {
-            outputFile << row[i];
-            if (i != row.size() - 1) {
-                outputFile << ",";
-            }
-        }
-        outputFile << endl;
+        outputContent.push_back("Unable to count");
     }
 }
+
 
 bool validateRowData(const vector<string> &row) {
     for (int i = 0; i < table.tableColumns.size(); i++) {
@@ -527,4 +513,42 @@ bool isInteger(const string& value) {
         }
     }
     return true;
+}
+
+void getInputCommand() {
+    inputFile.open("fileInput2.mdb");
+    string line;
+    string buffer;
+
+    while (getline(inputFile, line)) {
+        buffer += line + "\n";
+
+        if (line.find(";") != std::string::npos) {
+            inputContent.push_back(buffer);
+            buffer.clear();
+        }
+    }
+    inputFile.close();
+}
+
+void writeToOutputFile() {
+    getInputCommand();
+
+    int inputContentSize = inputContent.size();     
+    int outputContentSize = outputContent.size();
+
+    for (int i = 0; i < inputContentSize; i++) {
+        outputFile << "> " << inputContent[i];
+        if (inputContent[i].find("DATABASES;") != std::string::npos) {
+            auto filePath = filesystem::absolute("fileInput2.mdb");
+            outputFile << filePath << "\n";       
+        }
+        else if (inputContent[i].find("TABLES;") != std::string::npos) {
+            outputFile << table.tableName << "\n";
+        }
+        else if (outputContent[i] == "null") continue;
+        else {
+            outputFile << outputContent[i] << "\n";
+        }
+    }
 }
