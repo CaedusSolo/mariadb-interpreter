@@ -398,59 +398,50 @@ string removeQuotesFromStringLit(string& str) {
 void updateTable(vector<string>& tokens) {
     string columnUpdate, newValue, conditionColumn, conditionValue;
 
-   
     for (size_t i = 0; i < tokens.size(); ++i) {
-
         if (tokens[i] == "SET") {
             columnUpdate = tokens[i + 1].substr(0, tokens[i + 1].find('='));
             newValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
 
             if (newValue.front() == '\'' && newValue.back() == '\'') {
-                newValue = newValue.substr(1, newValue.size() - 2); 
+                newValue = newValue.substr(1, newValue.size() - 2); // Remove quotes for internal processing
             }
-
         } else if (tokens[i] == "WHERE") {
-
             conditionColumn = tokens[i + 1].substr(0, tokens[i + 1].find('='));
             conditionValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
 
             if (conditionValue.front() == '\'' && conditionValue.back() == '\'') {
-                conditionValue = conditionValue.substr(1, conditionValue.size() - 2); 
+                conditionValue = conditionValue.substr(1, conditionValue.size() - 2); // Remove quotes for internal processing
             }
-
         }
-    
     }
 
     size_t updateColumnIndex = -1, conditionColumnIndex = -1;
 
-   
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-
         if (table.tableColumns[i].columnName == columnUpdate) {
             updateColumnIndex = i;
         }
-
         if (table.tableColumns[i].columnName == conditionColumn) {
             conditionColumnIndex = i;
         }
     }
 
-
-    bool updated = false; 
+    bool updated = false;
 
     if (updateColumnIndex != -1 && conditionColumnIndex != -1) {
-
         for (auto& row : table.tableRows) {
-
             if (row[conditionColumnIndex] == conditionValue) {
-                row[updateColumnIndex] = newValue;  
+                row[updateColumnIndex] = newValue;
                 updated = true;
             }
         }
     }
-   
 
+
+    outputFile << "UPDATE " << table.tableName << " SET " << columnUpdate << "=" << "'" << newValue << "'" << " WHERE " << conditionColumn << "=" << "'" << conditionValue << "';" << endl;
+
+  
 }
 
 void deleteFromTable(vector<string>& tokens) {
@@ -491,7 +482,7 @@ void deleteFromTable(vector<string>& tokens) {
                   [&](const vector<string>& row) { return row[columnIndex] == values; }),
         table.tableRows.end()
     );
-   
+   outputFile << "DELETE FROM " << table.tableName << " WHERE " << columnName << "=" << "'" << values << "';" << endl;
 }
 
 void countRows(vector<string>& tokens) {
@@ -508,7 +499,7 @@ void countRows(vector<string>& tokens) {
     } else {
         cout << "Cannot Count" << endl;
     }
-    OutputFile();
+    outputFile << "SELECT COUNT(*) FROM " << table.tableName << endl;
 }
 
 void OutputFile() {
@@ -517,7 +508,6 @@ void OutputFile() {
         return;
     }
 
-   
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
         outputFile << table.tableColumns[i].columnName;
         if (i + 1 < table.tableColumns.size()) { 
@@ -549,7 +539,8 @@ void Select() {
         return;
     }
 
-    
+    outputFile << "SELECT * FROM " << table.tableName << "; " << endl;
+
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
         outputFile << table.tableColumns[i].columnName;
         if (i != table.tableColumns.size() - 1) {
