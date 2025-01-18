@@ -493,3 +493,38 @@ void OutputFile() {
         outputFile << endl;
     }
 }
+
+bool validateRowData(const vector<string> &row) {
+    for (int i = 0; i < table.tableColumns.size(); i++) {
+        string columnType = table.tableColumns[i].columnType;
+        string rowValue = row[i];
+
+        if (columnType == "INT") {
+            bool isInt = isInteger(rowValue);
+            if (!isInt) {
+                cerr << "ERROR: Mismatching data types at column " << i + 1 << ". Expected INT type but got '" << rowValue << "'" << endl;
+                return false;
+            }
+        }
+        else if (columnType == "TEXT") {
+            if (rowValue.front() != '\'' && rowValue.back() != '\'') {
+                cerr << "ERROR: Mismatching data types at column " << i + 1 << ". Expected TEXT but got '" << rowValue << "'" << endl;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool isInteger(const string& value) {
+    if (value.empty()) return false;
+
+    size_t start = (value[0] == '-') ? 1 : 0;    // ternary operator
+
+    for (int i = start; i < value.size(); i++) {
+        if (!isdigit(value[i])) {
+            return false;
+        }
+    }
+    return true;
+}
