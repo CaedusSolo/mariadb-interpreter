@@ -47,6 +47,9 @@ void countRows(vector<string>& tokens);
 void selectFromTable();
 string removeQuotesFromStringLit(string &);
 
+void OutputFile();
+
+
 Table table;
 //  This is what the Table struct looks like:
 //  {
@@ -178,13 +181,11 @@ void readFileInput() {
     }
 
     stringstream buffer;
-    buffer << inputFile.rdbuf(); 
+    buffer << inputFile.rdbuf();
     string fileContent = buffer.str();
     inputFile.close();
 
     vector<string> allTokens = tokenize(fileContent);
-
-    bool isTableModified = false;
 
     for (size_t i = 0; i < allTokens.size(); ++i) {
         if (allTokens[i] == "CREATE") {
@@ -197,28 +198,17 @@ void readFileInput() {
                 }
                 createTable(createTableTokens);
                 i = j;
-            } else if (allTokens[i + 1].length() >= 4 && allTokens[i + 1].substr(allTokens[i + 1].length() - 5, 5) == ".txt;") {
+            } else if (allTokens[i + 1].find(".txt") != string::npos) {
                 createOutputFile(allTokens[i + 1]);
             }
         } else if (allTokens[i] == "INSERT" && allTokens[i + 1] == "INTO") {
-            vector<string> insertIntoTableTokens;
+            vector<string> insertTokens;
             size_t j = i;
             while (j < allTokens.size() && allTokens[j] != ";") {
-                insertIntoTableTokens.push_back(allTokens[j]);
+                insertTokens.push_back(allTokens[j]);
                 j++;
             }
-            insertIntoTable(insertIntoTableTokens);
-            isTableModified = true;
-            i = j;
-        } else if (allTokens[i] == "UPDATE") {
-            vector<string> updateTokens;
-            size_t j = i;
-            while (j < allTokens.size() && allTokens[j] != ";") {
-                updateTokens.push_back(allTokens[j]);
-                j++;
-            }
-            updateTable(updateTokens);
-            isTableModified = true;
+            insertIntoTable(insertTokens);
             i = j;
         } else if (allTokens[i] == "DELETE") {
             vector<string> deleteTokens;
@@ -228,21 +218,21 @@ void readFileInput() {
                 j++;
             }
             deleteFromTable(deleteTokens);
-            isTableModified = true;
             i = j;
-        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "COUNT(*)" && allTokens[i + 2] == "FROM") {
-            vector<string> countTokens(allTokens.begin() + i, allTokens.end());
-            countRows(countTokens);  
-        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "*") {
-            selectFromTable();
+        } else if (allTokens[i] == "SELECT") {
+            OutputFile();
+        } else if (allTokens[i] == "UPDATE") {
+            vector<string> updateTokens;
+            size_t j = i;
+            while (j < allTokens.size() && allTokens[j] != ";") {
+                updateTokens.push_back(allTokens[j]);
+                j++;
+            }
+            updateTable(updateTokens);
+            i = j;
         }
     }
-
-    if (isTableModified) {
-        selectFromTable(); 
-    }
 }
-
 
 void createOutputFile(string &fileName) {
     if (fileName.back() == ';') {
@@ -257,7 +247,6 @@ void createOutputFile(string &fileName) {
         cerr << "Failed to create output file." << endl;
     }
 }
-
 
 void createTable(vector<string> &tokens) { 
     string tableName = tokens[2];
@@ -409,58 +398,50 @@ string removeQuotesFromStringLit(string& str) {
 void updateTable(vector<string>& tokens) {
     string columnUpdate, newValue, conditionColumn, conditionValue;
 
-   
     for (size_t i = 0; i < tokens.size(); ++i) {
-
         if (tokens[i] == "SET") {
             columnUpdate = tokens[i + 1].substr(0, tokens[i + 1].find('='));
             newValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
 
             if (newValue.front() == '\'' && newValue.back() == '\'') {
-                newValue = newValue.substr(1, newValue.size() - 2); 
+                newValue = newValue.substr(1, newValue.size() - 2); // Remove quotes for internal processing
             }
-
         } else if (tokens[i] == "WHERE") {
-
             conditionColumn = tokens[i + 1].substr(0, tokens[i + 1].find('='));
             conditionValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
 
             if (conditionValue.front() == '\'' && conditionValue.back() == '\'') {
-                conditionValue = conditionValue.substr(1, conditionValue.size() - 2); 
+                conditionValue = conditionValue.substr(1, conditionValue.size() - 2); // Remove quotes for internal processing
             }
-
         }
-    
     }
 
     size_t updateColumnIndex = -1, conditionColumnIndex = -1;
 
-   
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-
         if (table.tableColumns[i].columnName == columnUpdate) {
             updateColumnIndex = i;
         }
-
         if (table.tableColumns[i].columnName == conditionColumn) {
             conditionColumnIndex = i;
         }
     }
 
-
-    bool updated = false; 
+    bool updated = false;
 
     if (updateColumnIndex != -1 && conditionColumnIndex != -1) {
-
         for (auto& row : table.tableRows) {
-
             if (row[conditionColumnIndex] == conditionValue) {
-                row[updateColumnIndex] = newValue;  
+                row[updateColumnIndex] = newValue;
                 updated = true;
             }
         }
     }
 
+
+    outputFile << "> UPDATE " << table.tableName << " SET " << columnUpdate << "=" << "'" << newValue << "'" << " WHERE " << conditionColumn << "=" << "'" << conditionValue << "';" << endl;
+
+  
 }
 
 void deleteFromTable(vector<string>& tokens) {
@@ -501,6 +482,7 @@ void deleteFromTable(vector<string>& tokens) {
                   [&](const vector<string>& row) { return row[columnIndex] == values; }),
         table.tableRows.end()
     );
+   outputFile << "> DELETE FROM " << table.tableName << " WHERE " << columnName << "=" << "'" << values << "';" << endl;
 }
 
 void countRows(vector<string>& tokens) {
@@ -516,5 +498,35 @@ void countRows(vector<string>& tokens) {
 
     } else {
         cout << "Cannot Count" << endl;
+    }
+    outputFile << "> SELECT COUNT(*) FROM " << table.tableName << endl;
+}
+
+
+void OutputFile() {
+    if (!outputFile.is_open()) {
+        cerr << "Output file is not open!" << endl;
+        return;
+    }
+
+    outputFile << "> SELECT * FROM " << table.tableName << "; " << endl;
+
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+        outputFile << table.tableColumns[i].columnName;
+        if (i != table.tableColumns.size() - 1) {
+            outputFile << ",";
+        }
+    }
+    outputFile << endl;
+
+   
+    for (const auto& row : table.tableRows) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            outputFile << row[i];
+            if (i != row.size() - 1) {
+                outputFile << ",";
+            }
+        }
+        outputFile << endl;
     }
 }
