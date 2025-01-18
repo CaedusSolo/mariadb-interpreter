@@ -9,7 +9,7 @@
 //  ************************************************************************************************
 //  Task Distribution
 //  Member_1: Read input file, tokenization, create table, insert into table
-//  Member_2: 
+//  Member_2: Delete from table, update table, count table rows, write to output file
 //  ************************************************************************************************
 
 #include <iostream>
@@ -19,6 +19,7 @@
 #include <sstream>
 #include <cctype>
 #include <algorithm>
+#include <typeinfo>
 using namespace std;
 
 ifstream inputFile;
@@ -45,6 +46,8 @@ void updateTable(vector<string>&);
 void deleteFromTable(vector<string>&);
 void countRows(vector<string>& tokens);
 void selectFromTable();
+bool validateRowData(const vector<string>&);
+bool isInteger(const string&);
 string removeQuotesFromStringLit(string &);
 
 Table table;
@@ -92,75 +95,6 @@ vector<string> tokenize(const string& input) {
     for (size_t i = 0; i < tokens.size(); i++) {
         cout << "Token: " << tokens[i] << endl;
     }
-//  OUTPUT for the above for loop:
-// Token: CREATE
-// Token: fileOutput1.txt
-// Token: ;
-// Token: DATABASES
-// Token: ;
-// Token: CREATE
-// Token: TABLE
-// Token: customer
-// Token: (
-// Token: customer_id
-// Token: INT
-// Token: ,
-// Token: customer_name
-// Token: TEXT
-// Token: ,
-// Token: customer_city
-// Token: TEXT
-// Token: ,
-// Token: customer_state
-// Token: TEXT
-// Token: ,
-// Token: customer_country
-// Token: TEXT
-// Token: ,
-// Token: customer_phone
-// Token: TEXT
-// Token: ,
-// Token: customer_email
-// Token: TEXT
-// Token: )
-// Token: ;
-// Token: TABLES
-// Token: ;
-// Token: INSERT
-// Token: INTO
-// Token: customer
-// Token: (
-// Token: customer_id
-// Token: ,
-// Token: customer_name
-// Token: ,
-// Token: customer_city
-// Token: ,
-// Token: customer_state
-// Token: ,
-// Token: customer_country
-// Token: ,
-// Token: customer_phone
-// Token: ,
-// Token: customer_email
-// Token: )
-// Token: VALUES
-// Token: (
-// Token: 1
-// Token: ,
-// Token: 'name1'
-// Token: ,
-// Token: 'city1'
-// Token: ,
-// Token: 'state1'
-// Token: ,
-// Token: 'country1'
-// Token: ,
-// Token: 'phone1'
-// Token: ,
-// Token: 'email1'
-// Token: )
-// Token: ;
     return tokens;
 }
 
@@ -200,6 +134,7 @@ void readFileInput() {
             } else if (allTokens[i + 1].length() >= 4 && allTokens[i + 1].substr(allTokens[i + 1].length() - 5, 5) == ".txt;") {
                 createOutputFile(allTokens[i + 1]);
             }
+
         } else if (allTokens[i] == "INSERT" && allTokens[i + 1] == "INTO") {
             vector<string> insertIntoTableTokens;
             size_t j = i;
@@ -210,6 +145,7 @@ void readFileInput() {
             insertIntoTable(insertIntoTableTokens);
             isTableModified = true;
             i = j;
+
         } else if (allTokens[i] == "UPDATE") {
             vector<string> updateTokens;
             size_t j = i;
@@ -220,6 +156,7 @@ void readFileInput() {
             updateTable(updateTokens);
             isTableModified = true;
             i = j;
+
         } else if (allTokens[i] == "DELETE") {
             vector<string> deleteTokens;
             size_t j = i;
@@ -230,10 +167,12 @@ void readFileInput() {
             deleteFromTable(deleteTokens);
             isTableModified = true;
             i = j;
+            
         } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "COUNT(*)" && allTokens[i + 2] == "FROM") {
             vector<string> countTokens(allTokens.begin() + i, allTokens.end());
             countRows(countTokens);  
-        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "*") {
+
+        } else if (allTokens[i] == "SELECT" && allTokens[i + 1] == "*" && allTokens[i+2] == "FROM") {
             selectFromTable();
         }
     }
@@ -255,6 +194,7 @@ void createOutputFile(string &fileName) {
     }
     else {
         cerr << "Failed to create output file." << endl;
+        return;
     }
 }
 
@@ -271,13 +211,13 @@ void createTable(vector<string> &tokens) {
             columnType.pop_back();
         }
 
+        if (columnType != "INT" && columnType != "TEXT") {
+            cerr << "ERROR: Unsupported column type '" << columnType << "'. " << endl << "Supported types are INT and TEXT." << endl;
+            return;
+        }
+
         Column column = {columnName, columnType};
         table.tableColumns.push_back(column);
-    }
-
-    cout << "Table '" << table.tableName << "' created with the following columns:" << endl;
-    for (const auto &col : table.tableColumns) {
-        cout << "- " << col.columnName << " (" << col.columnType << ")" << endl;
     }
 }
 
@@ -326,26 +266,28 @@ void insertIntoTable(vector<string> &tokens) {
     auto iterator = find(tokens.begin(), tokens.end(), "VALUES");
 
     if (iterator == tokens.end() || distance(tokens.begin(), iterator) + 2 >= tokens.size()) {
-        cerr << "Error: VALUES keyword missing or improperly formatted insert statement." << endl;
+        cerr << "Error: VALUES keyword missing or invalid INSERT syntax." << endl;
         return;
-}
-
-    int index;
-
-    if (iterator != tokens.end()) {
-        index = distance(tokens.begin(), iterator) + 2;
     }
 
+    // Directly calculate index after the "VALUES" keyword
+    int index = distance(tokens.begin(), iterator) + 2;
+
+    // Start from the index after "VALUES" and collect valid values
     for (size_t i = index; i < tokens.size(); i++) {
-        if (tokens[i] != "," && tokens[i] != ")") {
+        if (tokens[i] != "," && tokens[i] != ")" && !tokens[i].empty()) {
             row.push_back(tokens[i]);
         }
     }
 
-    if (row.size() == table.tableColumns.size()) {
-        table.tableRows.push_back(row);
+    // Validate the row data based on column types
+    if (!validateRowData(row)) {
+        cerr << "Invalid data types in row. Insert operation aborted." << endl;
+        return;
     }
 
+    // Now, insert the row into table's rows
+    table.tableRows.push_back(row);
 
  // for (int i = 0; i < row.size(); i++) {
  //     cout << "Row token: " << row[i] << endl;
@@ -375,6 +317,16 @@ void insertIntoTable(vector<string> &tokens) {
 }
 
 void selectFromTable() {
+    if (table.tableName.empty()) {
+        cerr << "No table has been created." << endl;
+        return;
+    }
+
+    // if (table.tableRows.empty()) {
+    //     cerr << "Table does not have any values." << endl;
+    //     return;
+    // }
+
     for (size_t i = 0; i < table.tableColumns.size(); i++) {
         cout << table.tableColumns[i].columnName;
         if (i + 1 < table.tableColumns.size()) { // Only add a comma if not the last element
@@ -407,6 +359,11 @@ string removeQuotesFromStringLit(string& str) {
 }
 
 void updateTable(vector<string>& tokens) {
+    if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
+        cerr << "ERROR: Missing WHERE clause" << endl;
+        return;
+    }
+
     string columnUpdate, newValue, conditionColumn, conditionValue;
 
    
@@ -464,6 +421,12 @@ void updateTable(vector<string>& tokens) {
 }
 
 void deleteFromTable(vector<string>& tokens) {
+
+    if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
+        cerr << "ERROR: Missing WHERE clause" << endl;
+        return;
+    }
+
     string columnName, values;
 
     
@@ -511,10 +474,46 @@ void countRows(vector<string>& tokens) {
             cout << table.tableRows.size() << endl;  
 
         } else {
-            cout << "Did not find " << tableName << endl;
+            cout << "ERROR: Table '" << tableName << "' does not exist." << endl;
+            return;
         }
 
     } else {
-        cout << "Cannot Count" << endl;
+        cout << "ERROR: Invalid COUNT syntax" << endl;
     }
+}
+
+bool validateRowData(const vector<string> &row) {
+    for (int i = 0; i < table.tableColumns.size(); i++) {
+        string columnType = table.tableColumns[i].columnType;
+        string rowValue = row[i];
+
+        if (columnType == "INT") {
+            bool isInt = isInteger(rowValue);
+            if (!isInt) {
+                cerr << "ERROR: Mismatching data types at column " << i + 1 << ". Expected INT type but got '" << rowValue << "'" << endl;
+                return false;
+            }
+        }
+        else if (columnType == "TEXT") {
+            if (rowValue.front() != '\'' && rowValue.back() != '\'') {
+                cerr << "ERROR: Mismatching data types at column " << i + 1 << ". Expected TEXT but got '" << rowValue << "'" << endl;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool isInteger(const string& value) {
+    if (value.empty()) return false;
+
+    size_t start = (value[0] == '-') ? 1 : 0;    // ternary operator
+
+    for (int i = start; i < value.size(); i++) {
+        if (!isdigit(value[i])) {
+            return false;
+        }
+    }
+    return true;
 }
