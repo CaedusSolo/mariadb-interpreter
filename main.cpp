@@ -439,7 +439,7 @@ void updateTable(vector<string>& tokens) {
     }
 
 
-    outputFile << "UPDATE " << table.tableName << " SET " << columnUpdate << "=" << "'" << newValue << "'" << " WHERE " << conditionColumn << "=" << "'" << conditionValue << "';" << endl;
+    outputFile << "> UPDATE " << table.tableName << " SET " << columnUpdate << "=" << "'" << newValue << "'" << " WHERE " << conditionColumn << "=" << "'" << conditionValue << "';" << endl;
 
   
 }
@@ -482,7 +482,7 @@ void deleteFromTable(vector<string>& tokens) {
                   [&](const vector<string>& row) { return row[columnIndex] == values; }),
         table.tableRows.end()
     );
-   outputFile << "DELETE FROM " << table.tableName << " WHERE " << columnName << "=" << "'" << values << "';" << endl;
+   outputFile << "> DELETE FROM " << table.tableName << " WHERE " << columnName << "=" << "'" << values << "';" << endl;
 }
 
 void countRows(vector<string>& tokens) {
@@ -499,7 +499,7 @@ void countRows(vector<string>& tokens) {
     } else {
         cout << "Cannot Count" << endl;
     }
-    outputFile << "SELECT COUNT(*) FROM " << table.tableName << endl;
+    outputFile << "> SELECT COUNT(*) FROM " << table.tableName << endl;
 }
 
 
@@ -509,7 +509,7 @@ void OutputFile() {
         return;
     }
 
-    outputFile << "SELECT * FROM " << table.tableName << "; " << endl;
+    outputFile << "> SELECT * FROM " << table.tableName << "; " << endl;
 
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
         outputFile << table.tableColumns[i].columnName;
