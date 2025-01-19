@@ -378,60 +378,12 @@ void updateTable(vector<string>& tokens) {
     }
 
     outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
-
-    // string output = "Column to be Updated: " + columnUpdate;
-    // int indexOfColumn;
-
-    // for (int i = 0; i < table.tableColumns.size(); i++) {
-    //     string currentColumn = table.tableColumns[i].columnName;
-    //     if (currentColumn != conditionColumn) {
-    //         continue;
-    //     }
-    //     indexOfColumn = i;  // = 0
-    //     for (int j = 0; j < table.tableRows[i].size(); j++) {
-    //         vector<string> currentRow = table.tableRows[i];
-    //         string currentRowValue = table.tableRows[i][j]; //  "3"
-    //         if (currentRowValue == conditionValue) {
-    //             currentRow.columnUpdate = newValue;
-    //         }
-    //     }
-    // } 
-
-    // string columnUpdate = *(itSet + 1);
-    // string newValue = *(itSet + 3);
-    // string conditionColumn = *(itWhere + 1);
-    // string conditionValue = *(itWhere + 3);
-
-    // newValue = removeQuotesFromStringLit(newValue);
-    // conditionValue = removeQuotesFromStringLit(conditionValue);
-
-    // int updateColumnIndex = -1, conditionColumnIndex = -1;
-
-    // for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-    //     if (table.tableColumns[i].columnName == columnUpdate) updateColumnIndex = i;
-    //     if (table.tableColumns[i].columnName == conditionColumn) conditionColumnIndex = i;
-    // }
-
-    // if (updateColumnIndex == -1 || conditionColumnIndex == -1) {
-    //     outputContent.push_back("ERROR: Invalid column name in UPDATE statement.");
-    //     return;
-    // }
-
-    // bool updated = false;
-    // for (auto& row : table.tableRows) {
-    //     if (row[conditionColumnIndex] == conditionValue) {
-    //         row[updateColumnIndex] = newValue;
-    //         updated = true;
-    //     }
-    // }
-
-    // outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
 }
 
 
 void deleteFromTable(vector<string>& tokens) {
     auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
-    if (itWhere == tokens.end() || distance(itWhere, tokens.end()) < 4) { 
+    if (itWhere == tokens.end()) { 
         outputContent.push_back("ERROR: Invalid DELETE syntax.");
         return;
     }
@@ -442,8 +394,10 @@ void deleteFromTable(vector<string>& tokens) {
         return;
     }
 
-    string columnName = *(itWhere + 1);
-    string conditionValue = *(itWhere + 3);
+    string columnName;
+    string conditionValue;
+    tuple<string, string> whereParts = extractValuesFromEqualSign(tokens[4]);
+    tie(columnName, conditionValue) = whereParts;
 
     conditionValue = removeQuotesFromStringLit(conditionValue);
 
@@ -461,8 +415,8 @@ void deleteFromTable(vector<string>& tokens) {
     }
 
     size_t oldSize = table.tableRows.size();
-    table.tableRows.erase(remove_if(table.tableRows.begin(), table.tableRows.end(),
-                                    [&](const vector<string>& row) { return row[columnIndex] == conditionValue; }),
+    table.tableRows.erase(std::remove_if(table.tableRows.begin(), table.tableRows.end(),
+                                     [&](const std::vector<std::string>& row) { return row[columnIndex] == conditionValue; }),
                           table.tableRows.end());
 
     outputContent.push_back((table.tableRows.size() < oldSize) ? "Table deletion successful!" : "No matching rows found for deletion.");
