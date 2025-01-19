@@ -110,7 +110,7 @@ int main() {
 }
 
 void readFileInput() {
-    inputFile.open("fileInput2.mdb");
+    inputFile.open("fileInput1.mdb");
     if (!inputFile.is_open()) {
         cerr << "Error opening input file." << endl;
         return;
@@ -374,12 +374,12 @@ void updateTable(vector<string>& tokens) {
 
 void deleteFromTable(vector<string>& tokens) {
     auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
-    if (itWhere == tokens.end() || distance(itWhere, tokens.end()) < 4) { // Corrected condition here
+    if (itWhere == tokens.end() || distance(itWhere, tokens.end()) < 4) { 
         outputContent.push_back("ERROR: Invalid DELETE syntax.");
         return;
     }
 
-    string tableName = tokens[2]; //Get table name
+    string tableName = tokens[2]; 
     if (tableName != table.tableName) {
         outputContent.push_back("ERROR: Table '" + tableName + "' does not exist.");
         return;
@@ -456,7 +456,7 @@ bool isInteger(const string& value) {
 }
 
 void getInputCommand() {
-    inputFile.open("fileInput2.mdb");
+    inputFile.open("fileInput1.mdb");
     string line;
     string buffer;
 
@@ -490,6 +490,6 @@ void writeToOutputFile() {
 
         outputFile << "> " << inputContent[i];
         outputFile << outputContent[i] << "\n";
-        
+         
     }
 }

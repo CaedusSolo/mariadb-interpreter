@@ -1,7 +1,7 @@
 > CREATE fileOutput1.txt;
 Output file fileOutput1.txt created successfully!
 > DATABASES;
-"c:\\Users\\USER\\Desktop\\Programming Fundamentals\\Assignment\\fileInput2.mdb"
+c:\Users\USER\Desktop\Programming Fundamentals\Assignment\fileInput2.mdb
 > CREATE TABLE customer(
     customer_id INT,
     customer_name TEXT,
@@ -11,19 +11,18 @@ Output file fileOutput1.txt created successfully!
     customer_phone TEXT,
     customer_email TEXT
 );
-
+Table creation successful!
 > TABLES;
 customer
 > INSERT INTO customer(
     customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
 ) VALUES (1,'name1','city1','state1','country1','phone1','email1');
-customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
+
 > INSERT INTO customer(
     customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
 ) VALUES (2,'name2','city2','state2','country2','phone2','email2');
-customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email1,name1,city1,state1,country1,phone1,email1
 
 > SELECT * FROM customer;
-customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email1,name1,city1,state1,country1,phone1,email1
+customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
+1,name1,city1,state1,country1,phone1,email1
 2,name2,city2,state2,country2,phone2,email2
-
