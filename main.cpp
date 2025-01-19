@@ -47,7 +47,7 @@ void createTable(vector<string> &);
 void insertIntoTable(vector<string> &);
 void updateTable(vector<string>&);
 void deleteFromTable(vector<string>&);
-void countRows(vector<string>& tokens);
+void countRows();
 void selectFromTable();
 bool validateRowData(const vector<string>&);
 bool isInteger(const string&);
@@ -178,6 +178,12 @@ void readFileInput() {
                 }
                 else {
                     outputContent.push_back("Table does not exist.");
+                }
+            }
+
+            else if (allTokens[i+1] == "COUNT") {
+                if (allTokens[i+2] == "(" && allTokens[i+3] == "*" && allTokens[i+4] == ")") {
+                    countRows();
                 }
             }
         }
@@ -406,22 +412,11 @@ void deleteFromTable(vector<string>& tokens) {
 }
 
 
-void countRows(vector<string>& tokens) {
-    ostringstream oss;
-    if (tokens.size() >= 4 && tokens[0] == "SELECT" && tokens[1] == "COUNT(*)" && tokens[2] == "FROM") {
-        string tableName = tokens[3];
-
-        if (tableName == table.tableName) {
-            oss << table.tableRows.size();
-            outputContent.push_back(oss.str());
-        } else {
-            oss << "ERROR: Table '" << tableName << "' does not exist.";
-            outputContent.push_back(oss.str());
-        }
-
-    } else {
-        outputContent.push_back("Unable to count");
-    }
+void countRows() {
+  ostringstream oss;
+  oss << table.tableRows.size();
+  outputContent.push_back(oss.str());
+  oss.clear();
 }
 
 
@@ -494,7 +489,6 @@ void writeToOutputFile() {
     for (int i = 0; i < inputContentSize; i++) {
 
         outputFile << "> " << inputContent[i];
-        
         outputFile << outputContent[i] << "\n";
         
     }
