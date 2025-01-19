@@ -8,8 +8,8 @@
 //  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my | 011-10988658
 //  ************************************************************************************************
 //  Task Distribution
-//  Member_1: Read input file, tokenization, create table, insert into table, write to output file
-//  Member_2: Delete from table, update table, count table rows, flowchart
+//  Member_1: Read input file, tokenization, create table, insert into table, write to output file, update table
+//  Member_2: Delete from table, count table rows, flowchart, psuedocode
 //  ************************************************************************************************
 #include <iostream>
 #include <fstream>
@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <typeinfo>
 #include <filesystem>
+#include <tuple>
 using namespace std;
 
 ifstream inputFile;
@@ -36,6 +37,7 @@ struct Table {
     vector<vector<string>> tableRows;
 };
 
+const string INPUTFILE = "fileInput2.mdb";
 vector<string> inputContent;
 vector<string> outputContent;
 
@@ -53,7 +55,7 @@ bool validateRowData(const vector<string>&);
 bool isInteger(const string&);
 string removeQuotesFromStringLit(string &);
 void writeToOutputFile();
-
+tuple<string, string> extractValuesFromEqualSign(string&);
 
 Table table;
 //  This is what the Table struct looks like:
@@ -97,9 +99,9 @@ vector<string> tokenize(const string& input) {
     if (!token.empty()) {
         tokens.push_back(token);
     }
-    for (size_t i = 0; i < tokens.size(); i++) {
-        cout << "Token: " << tokens[i] << endl;
-    }
+    // for (size_t i = 0; i < tokens.size(); i++) {
+    //     cout << "Token: " << tokens[i] << endl;
+    // }
     return tokens;
 }
 
@@ -110,7 +112,7 @@ int main() {
 }
 
 void readFileInput() {
-    inputFile.open("fileInput1.mdb");
+    inputFile.open(INPUTFILE);
     if (!inputFile.is_open()) {
         cerr << "Error opening input file." << endl;
         return;
@@ -163,7 +165,7 @@ void readFileInput() {
             vector<string> updateTokens;
             size_t j = i;
 
-            while (j < allTokens.size() && allTokens[j] != ";" && allTokens[i+2] == "FROM") {
+            while (j < allTokens.size() && allTokens[j] != ";") {
                 updateTokens.push_back(allTokens[j]);
                 j++;
             }
@@ -189,7 +191,7 @@ void readFileInput() {
         }
 
         else if (allTokens[i] == "DATABASES") {
-            auto filePath = filesystem::absolute("fileInput2.mdb");    
+            auto filePath = filesystem::absolute(INPUTFILE);    
             outputContent.push_back(filePath.string());
         }
 
@@ -281,16 +283,6 @@ void selectFromTable() {
 
     ostringstream oss;
 
-    // // Print column headers
-    // for (size_t i = 0; i < table.tableColumns.size(); i++) {
-    //     oss << table.tableColumns[i].columnName;
-    //     if (i + 1 < table.tableColumns.size()) {
-    //         oss << ",";
-    //     }
-    // }
-    // outputContent.push_back(oss.str()); // Store column names as CSV
-    // oss.clear();
-
     // Print rows
     for (size_t i = 0; i < table.tableRows.size(); i++) {
         if (i == 0) {
@@ -326,10 +318,22 @@ string removeQuotesFromStringLit(string& str) {
 }
 
 void updateTable(vector<string>& tokens) {
+    for (int i = 0; i < tokens.size(); i++) {
+        cout << "Update Table Token [" << i << "]: " << tokens[i] << endl;
+    }
+
+// Update Table Token [0]: UPDATE
+// Update Table Token [1]: customer
+// Update Table Token [2]: SET
+// Update Table Token [3]: customer_email='email333'
+// Update Table Token [4]: WHERE
+// Update Table Token [5]: customer_id=3
+
+
     auto itSet = find(tokens.begin(), tokens.end(), "SET");
     auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
 
-    if (itSet == tokens.end() || itWhere == tokens.end() || distance(itSet, itWhere) < 3) {
+    if (itSet == tokens.end() || itWhere == tokens.end()) {
         outputContent.push_back("ERROR: Invalid UPDATE syntax.");
         return;
     }
@@ -340,10 +344,15 @@ void updateTable(vector<string>& tokens) {
         return;
     }
 
-    string columnUpdate = *(itSet + 1);
-    string newValue = *(itSet + 3);
-    string conditionColumn = *(itWhere + 1);
-    string conditionValue = *(itWhere + 3);
+    tuple<string, string> setParts = extractValuesFromEqualSign(tokens[3]);
+    string columnUpdate; //  customer_email 
+    string newValue;     //  'email3333'
+    tie(columnUpdate, newValue) = setParts;
+
+    tuple<string, string> whereParts = extractValuesFromEqualSign(tokens[5]);
+    string conditionColumn;   // customer_id 
+    string conditionValue;    // "3"
+    tie(conditionColumn, conditionValue) = whereParts;
 
     newValue = removeQuotesFromStringLit(newValue);
     conditionValue = removeQuotesFromStringLit(conditionValue);
@@ -361,14 +370,62 @@ void updateTable(vector<string>& tokens) {
     }
 
     bool updated = false;
-    for (auto& row : table.tableRows) {
+    for (auto& row : table.tableRows) { // Iterate through the actual rows in the table
         if (row[conditionColumnIndex] == conditionValue) {
-            row[updateColumnIndex] = newValue;
+            row[updateColumnIndex] = newValue; // Correctly update the element in the row
             updated = true;
         }
     }
 
     outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
+
+    // string output = "Column to be Updated: " + columnUpdate;
+    // int indexOfColumn;
+
+    // for (int i = 0; i < table.tableColumns.size(); i++) {
+    //     string currentColumn = table.tableColumns[i].columnName;
+    //     if (currentColumn != conditionColumn) {
+    //         continue;
+    //     }
+    //     indexOfColumn = i;  // = 0
+    //     for (int j = 0; j < table.tableRows[i].size(); j++) {
+    //         vector<string> currentRow = table.tableRows[i];
+    //         string currentRowValue = table.tableRows[i][j]; //  "3"
+    //         if (currentRowValue == conditionValue) {
+    //             currentRow.columnUpdate = newValue;
+    //         }
+    //     }
+    // } 
+
+    // string columnUpdate = *(itSet + 1);
+    // string newValue = *(itSet + 3);
+    // string conditionColumn = *(itWhere + 1);
+    // string conditionValue = *(itWhere + 3);
+
+    // newValue = removeQuotesFromStringLit(newValue);
+    // conditionValue = removeQuotesFromStringLit(conditionValue);
+
+    // int updateColumnIndex = -1, conditionColumnIndex = -1;
+
+    // for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+    //     if (table.tableColumns[i].columnName == columnUpdate) updateColumnIndex = i;
+    //     if (table.tableColumns[i].columnName == conditionColumn) conditionColumnIndex = i;
+    // }
+
+    // if (updateColumnIndex == -1 || conditionColumnIndex == -1) {
+    //     outputContent.push_back("ERROR: Invalid column name in UPDATE statement.");
+    //     return;
+    // }
+
+    // bool updated = false;
+    // for (auto& row : table.tableRows) {
+    //     if (row[conditionColumnIndex] == conditionValue) {
+    //         row[updateColumnIndex] = newValue;
+    //         updated = true;
+    //     }
+    // }
+
+    // outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
 }
 
 
@@ -409,6 +466,15 @@ void deleteFromTable(vector<string>& tokens) {
                           table.tableRows.end());
 
     outputContent.push_back((table.tableRows.size() < oldSize) ? "Table deletion successful!" : "No matching rows found for deletion.");
+}
+
+
+tuple<string, string> extractValuesFromEqualSign(string& str) {
+    size_t equalPos = str.find('=');
+    string part1 = str.substr(0, equalPos);
+    string part2 = str.substr(equalPos + 1);
+
+    return tuple<string, string>(part1, part2);
 }
 
 
@@ -456,7 +522,7 @@ bool isInteger(const string& value) {
 }
 
 void getInputCommand() {
-    inputFile.open("fileInput1.mdb");
+    inputFile.open(INPUTFILE);
     string line;
     string buffer;
 
@@ -469,19 +535,12 @@ void getInputCommand() {
             buffer.clear();
         }
     }
-    for (int i = 0; i < inputContent.size(); i++) {
-        cout << "Debug: InputContent[" << i << "] = " << inputContent[i] << endl;
-    }
     inputFile.close();
 }
 
 
 void writeToOutputFile() {
     getInputCommand();
-
-    for (int i = 0; i < outputContent.size(); i++) {
-        cout << "Debug: OutputContent[" << i << "] = " << outputContent[i] << endl;
-    }
 
     int inputContentSize = inputContent.size();     
     int outputContentSize = outputContent.size();
