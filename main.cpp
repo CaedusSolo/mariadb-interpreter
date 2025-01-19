@@ -11,7 +11,6 @@
 //  Member_1: Read input file, tokenization, create table, insert into table, write to output file
 //  Member_2: Delete from table, update table, count table rows, flowchart
 //  ************************************************************************************************
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -182,6 +181,15 @@ void readFileInput() {
                 }
             }
         }
+
+        else if (allTokens[i] == "DATABASES") {
+            auto filePath = filesystem::absolute("fileInput2.mdb");    
+            outputContent.push_back(filePath.string());
+        }
+
+        else if (allTokens[i] == "TABLES") {
+            outputContent.push_back(table.tableName);
+        }
     }
 }
 
@@ -267,18 +275,26 @@ void selectFromTable() {
 
     ostringstream oss;
 
-    // Print column headers
-    for (size_t i = 0; i < table.tableColumns.size(); i++) {
-        oss << table.tableColumns[i].columnName;
-        if (i + 1 < table.tableColumns.size()) {
-            oss << ",";
-        }
-    }
-    outputContent.push_back(oss.str()); // Store column names as CSV
-    oss.clear();
+    // // Print column headers
+    // for (size_t i = 0; i < table.tableColumns.size(); i++) {
+    //     oss << table.tableColumns[i].columnName;
+    //     if (i + 1 < table.tableColumns.size()) {
+    //         oss << ",";
+    //     }
+    // }
+    // outputContent.push_back(oss.str()); // Store column names as CSV
+    // oss.clear();
 
     // Print rows
     for (size_t i = 0; i < table.tableRows.size(); i++) {
+        if (i == 0) {
+            for (size_t i = 0; i < table.tableColumns.size(); i++) {
+                oss << table.tableColumns[i].columnName;
+                if (i + 1 < table.tableColumns.size()) {
+                    oss << ",";
+                }
+            }
+        }
         oss << "\n";
         for (size_t j = 0; j < table.tableRows[i].size(); j++) {
             if (table.tableColumns[j].columnType == "TEXT") {
@@ -289,14 +305,10 @@ void selectFromTable() {
             if (j + 1 < table.tableRows[i].size()) {
                 oss << ",";
             }
-            else {
-                oss << "\n";
-            }
         }
-        cout << oss.str() << endl;
-        outputContent.push_back(oss.str()); // Store row as CSV
-        oss.clear();
     }
+    outputContent.push_back(oss.str()); // Store row as CSV
+    oss.clear();
 }
 
 
@@ -308,46 +320,33 @@ string removeQuotesFromStringLit(string& str) {
 }
 
 void updateTable(vector<string>& tokens) {
-    if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  
+    auto itSet = find(tokens.begin(), tokens.end(), "SET");
+    auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
+
+    if (itSet == tokens.end() || itWhere == tokens.end() || distance(itSet, itWhere) < 3) {
         outputContent.push_back("ERROR: Invalid UPDATE syntax.");
         return;
     }
 
-    string columnUpdate, newValue, conditionColumn, conditionValue;
-
-    // Extract column to update and its new value
-    auto setIt = find(tokens.begin(), tokens.end(), "SET");
-    auto whereIt = find(tokens.begin(), tokens.end(), "WHERE");
-
-    if (setIt == tokens.end() || whereIt == tokens.end() || setIt + 3 >= tokens.end() || whereIt + 3 >= tokens.end()) {
-        outputContent.push_back("ERROR: Invalid UPDATE syntax.");
+    string tableName = tokens[1]; // Get table name
+    if (tableName != table.tableName) {
+        outputContent.push_back("ERROR: Table '" + tableName + "' does not exist.");
         return;
     }
 
-    columnUpdate = *(setIt + 1);
-    newValue = *(setIt + 3);
+    string columnUpdate = *(itSet + 1);
+    string newValue = *(itSet + 3);
+    string conditionColumn = *(itWhere + 1);
+    string conditionValue = *(itWhere + 3);
 
-    if (newValue.front() == '\'' && newValue.back() == '\'') {
-        newValue = newValue.substr(1, newValue.size() - 2); // Remove quotes
-    }
+    newValue = removeQuotesFromStringLit(newValue);
+    conditionValue = removeQuotesFromStringLit(conditionValue);
 
-    conditionColumn = *(whereIt + 1);
-    conditionValue = *(whereIt + 3);
-
-    if (conditionValue.front() == '\'' && conditionValue.back() == '\'') {
-        conditionValue = conditionValue.substr(1, conditionValue.size() - 2);
-    }
-
-    int updateColumnIndex = -1;
-    int conditionColumnIndex = -1;
+    int updateColumnIndex = -1, conditionColumnIndex = -1;
 
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-        if (table.tableColumns[i].columnName == columnUpdate) {
-            updateColumnIndex = i;
-        }
-        if (table.tableColumns[i].columnName == conditionColumn) {
-            conditionColumnIndex = i;
-        }
+        if (table.tableColumns[i].columnName == columnUpdate) updateColumnIndex = i;
+        if (table.tableColumns[i].columnName == conditionColumn) conditionColumnIndex = i;
     }
 
     if (updateColumnIndex == -1 || conditionColumnIndex == -1) {
@@ -363,40 +362,30 @@ void updateTable(vector<string>& tokens) {
         }
     }
 
-    if (updated) {
-        outputContent.push_back("Table update successful!");
-    } else {
-        outputContent.push_back("No matching rows found for update.");
-    }
+    outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
 }
 
 
 void deleteFromTable(vector<string>& tokens) {
-
-    if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
+    auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
+    if (itWhere == tokens.end() || distance(itWhere, tokens.end()) < 4) { // Corrected condition here
         outputContent.push_back("ERROR: Invalid DELETE syntax.");
         return;
     }
 
-    string columnName, values;
-    ostringstream oss;
-    
-    for (size_t i = 0; i < tokens.size(); ++i) {
-
-        if (tokens[i] == "WHERE") {
-            columnName = tokens[i + 1].substr(0, tokens[i + 1].find('='));
-            values = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
-
-            if (values.front() == '\'' && values.back() == '\'') {
-                values = values.substr(1, values.size() - 2); 
-            }
-            break;
-        }
+    string tableName = tokens[2]; //Get table name
+    if (tableName != table.tableName) {
+        outputContent.push_back("ERROR: Table '" + tableName + "' does not exist.");
+        return;
     }
 
-    int columnIndex = -1;
-    for (int i = 0; i < table.tableColumns.size(); ++i) {
+    string columnName = *(itWhere + 1);
+    string conditionValue = *(itWhere + 3);
 
+    conditionValue = removeQuotesFromStringLit(conditionValue);
+
+    int columnIndex = -1;
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
         if (table.tableColumns[i].columnName == columnName) {
             columnIndex = i;
             break;
@@ -404,20 +393,18 @@ void deleteFromTable(vector<string>& tokens) {
     }
 
     if (columnIndex == -1) {
-        oss << "Did not find this column " << columnName;
-        outputContent.push_back(oss.str());
+        outputContent.push_back("ERROR: Column not found in DELETE statement.");
         return;
     }
 
- 
-    table.tableRows.erase(
-        remove_if(table.tableRows.begin(), table.tableRows.end(),
-                  [&](const vector<string>& row) { return row[columnIndex] == values; }),
-        table.tableRows.end()
-    );
+    size_t oldSize = table.tableRows.size();
+    table.tableRows.erase(remove_if(table.tableRows.begin(), table.tableRows.end(),
+                                    [&](const vector<string>& row) { return row[columnIndex] == conditionValue; }),
+                          table.tableRows.end());
 
-    outputContent.push_back("Table deletion successful!");
+    outputContent.push_back((table.tableRows.size() < oldSize) ? "Table deletion successful!" : "No matching rows found for deletion.");
 }
+
 
 void countRows(vector<string>& tokens) {
     ostringstream oss;
@@ -505,19 +492,10 @@ void writeToOutputFile() {
     int outputContentSize = outputContent.size();
 
     for (int i = 0; i < inputContentSize; i++) {
-        
+
         outputFile << "> " << inputContent[i];
-        if (inputContent[i].find("DATABASES;") != std::string::npos) {
-            auto filePath = filesystem::absolute("fileInput2.mdb");
-            outputFile << filePath << "\n";       
-        }
-        else if (inputContent[i].find("TABLES;") != std::string::npos) {
-            outputFile << table.tableName << "\n";
-        }
-        else if (outputContent[i] == "null") continue;
-        else {
-            outputFile << outputContent[i] << "\n";
-        }
-        cout << "Output #" << i + 1 << outputContent[i] << endl;
+        
+        outputFile << outputContent[i] << "\n";
+        
     }
 }
