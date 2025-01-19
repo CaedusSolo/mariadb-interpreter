@@ -1,0 +1,43 @@
+> CREATE fileOutput3.txt;
+Output file fileOutput3.txt created successfully!
+> DATABASES;
+c:\Users\USER\Desktop\Programming Fundamentals\Assignment\fileInput3.mdb
+> CREATE TABLE products(
+    product_id INT,
+    product_name TEXT, 
+    product_description TEXT, 
+    product_origin TEXT 
+);
+
+> INSERT INTO products(
+    product_id,
+    product_name, 
+    product_description, 
+    product_origin
+) VALUES (
+    1, 'tablet', 'gaming', 'KL'
+);
+
+> INSERT INTO products(
+    product_id,
+    product_name, 
+    product_description, 
+    product_origin
+) VALUES (
+    2, 'laptop', 'assignment', 'USA'
+);
+
+> SELECT * FROM products;
+product_id,product_name,product_description,product_origin
+1,tablet,gaming,KL
+2,laptop,assignment,USA
+> SELECT COUNT(*) FROM products;
+2
+> UPDATE products SET product_name='computer' WHERE product_id=2;
+
+> SELECT * FROM products;
+product_id,product_name,product_description,product_origin
+1,tablet,gaming,KL
+2,computer,assignment,USA
+> TABLES;
+products

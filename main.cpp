@@ -8,8 +8,8 @@
 //  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my | 011-10988658
 //  ************************************************************************************************
 //  Task Distribution
-//  Member_1: Read input file, tokenization, create table, insert into table, write to output file, update table
-//  Member_2: Delete from table, count table rows, flowchart, psuedocode
+//  Member_1: Read input file, tokenization, create table, insert into table, write to output file, parts of update table
+//  Member_2: Delete from table, count table rows, parts of update table, flowchart, pseudocode
 //  ************************************************************************************************
 #include <iostream>
 #include <fstream>
@@ -26,20 +26,23 @@ using namespace std;
 ifstream inputFile;
 ofstream outputFile;
 
+// struct representing table column
 struct Column {
     string columnName;
     string columnType;
 };
 
+//  struct representing table
 struct Table {
     string tableName;
     vector<Column> tableColumns;
     vector<vector<string>> tableRows;
 };
 
-const string INPUTFILE = "fileInput2.mdb";
-vector<string> inputContent;
-vector<string> outputContent;
+const string INPUT_FILE = "fileInput3.mdb";  //  input file name
+vector<string> inputContent;  //  global vector to store each line in input
+vector<string> outputContent; //  global vector to store the corresponding output for each input
+
 
 //  function prototypes
 vector<string> tokenize(const string&);
@@ -56,8 +59,10 @@ bool isInteger(const string&);
 string removeQuotesFromStringLit(string &);
 void writeToOutputFile();
 tuple<string, string> extractValuesFromEqualSign(string&);
+void getInputCommands();
 
-Table table;
+Table table;        //  global table variable
+
 //  This is what the Table struct looks like:
 //  {
 //     "customer", // Table name
@@ -74,164 +79,176 @@ Table table;
 //     } // Rows
 // };
 
-vector<string> tokenize(const string& input) {
-    vector<string> tokens;
-    stringstream ss(input);
-    string token;
-    char c;
 
-    while (ss.get(c)) {
-        if (isspace(c)) {
+vector<string> tokenize(const string& input) {  //  splits the input file into tokens to be stored into a vector
+//  for example, SELECT * FROM customer; ---> {"SELECT", "*", "FROM", "customer", ";"}
+
+    vector<string> tokens;  //  declare vector variable to store the result 
+    stringstream ss(input);  //  feed input variable (the entire input file content) into stringstream to be processed
+    string token;   //  declare string variable to store each token
+    char c;   //  variable to store each character
+
+    while (ss.get(c)) {  // read each character in the input string
+        if (isspace(c)) {   //  if a space is encountered, save token variable to tokens vector
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
             }
-        } else if (c == '(' || c == ')' || c == ',' || c == ';' || c == '*') {
+        } else if (c == '(' || c == ')' || c == ',' || c == ';' || c == '*') {  // if any of the symbols is encountered, save previous string into tokens vector
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
             }
-            tokens.push_back(string(1, c));
+            tokens.push_back(string(1, c));    //  append the symbol as a token into tokens vector
         } else {
-            token += c;
+            token += c;  //  append the character to the token string
         }
     }
     if (!token.empty()) {
-        tokens.push_back(token);
+        tokens.push_back(token);  //  only append token to tokens if token is populated
     }
-    // for (size_t i = 0; i < tokens.size(); i++) {
-    //     cout << "Token: " << tokens[i] << endl;
-    // }
+    //  for example, SELECT * FROM customer; ---> {"SELECT", "*", "FROM", "customer", ";"}
     return tokens;
 }
 
 int main() {
-    readFileInput();
-    writeToOutputFile();
+    readFileInput();   //  call readFileInput function to start processing input file
+    writeToOutputFile();  //  call writeToOutputFile function to write output to outputFile
     return 0;
 }
 
 void readFileInput() {
-    inputFile.open(INPUTFILE);
+    inputFile.open(INPUT_FILE);
     if (!inputFile.is_open()) {
         cerr << "Error opening input file." << endl;
         return;
     }
 
-    stringstream buffer;
-    buffer << inputFile.rdbuf();
-    string fileContent = buffer.str();
-    inputFile.close();
+    stringstream buffer;  //  create stringstream object to store content of input file
+    buffer << inputFile.rdbuf();  
+    string fileContent = buffer.str();  //  save buffer to a string variable fileContent
+    inputFile.close();   //  close input file
 
-    vector<string> allTokens = tokenize(fileContent);
+    vector<string> allTokens = tokenize(fileContent);  //  call tokenize function, passing in fileContent as argument. 
+                                                       //  save the result to a vector variable allTokens
 
+    //  Loop through every token and process                                                   
     for (size_t i = 0; i < allTokens.size(); ++i) {
+     // Check if the current token is "CREATE"
         if (allTokens[i] == "CREATE") {
+            // If yes, check if "TABLE" comes right after "CREATE"
             if (allTokens[i + 1] == "TABLE") {
-                vector<string> createTableTokens;
-                size_t j = i;
+                vector<string> createTableTokens; // Temporary variable to store tokens related to CREATE TABLE syntax
+                size_t j = i; // Initialize j to the current index i
+
+            // Collect tokens for the CREATE TABLE statement until a semicolon is encountered
                 while (j < allTokens.size() && allTokens[j] != ";") {
-                    createTableTokens.push_back(allTokens[j]);
-                    j++;
+                    createTableTokens.push_back(allTokens[j]);  // Add the current token to the vector
+                    j++;    // Increment j to move to the next token
                 }
-                createTable(createTableTokens);
-                i = j;
+                createTable(createTableTokens); // Call the createTable function to process the collected tokens
+                i = j;  // Update i to j to skip the processed tokens in the outer loop
             } else if (allTokens[i + 1].find(".txt") != string::npos) {
-                createOutputFile(allTokens[i + 1]);
-            }
-
-        } else if (allTokens[i] == "INSERT" && allTokens[i + 1] == "INTO") {
-            vector<string> insertTokens;
-            size_t j = i;
-            while (j < allTokens.size() && allTokens[j] != ";") {
-                insertTokens.push_back(allTokens[j]);
-                j++;
-            }
-            insertIntoTable(insertTokens);
-            i = j;
-
-        } else if (allTokens[i] == "DELETE") {
-            vector<string> deleteTokens;
-            size_t j = i;
-            while (j < allTokens.size() && allTokens[j] != ";") {
-                deleteTokens.push_back(allTokens[j]);
-                j++;
-            }
-            deleteFromTable(deleteTokens);
-            i = j;
-            
-        } 
-         else if (allTokens[i] == "UPDATE") {
-            vector<string> updateTokens;
-            size_t j = i;
-
-            while (j < allTokens.size() && allTokens[j] != ";") {
-                updateTokens.push_back(allTokens[j]);
-                j++;
-            }
-            updateTable(updateTokens);
-            i = j;
+                createOutputFile(allTokens[i + 1]);     // call createOutputFile function
         }
 
-        else if (allTokens[i] == "SELECT") {
-            if (allTokens[i + 1] == "*" && allTokens[i+2] == "FROM") {
-                if (allTokens[i+3] == table.tableName) {
-                    selectFromTable();
-                }
-                else {
-                    outputContent.push_back("Table does not exist.");
-                }
-            }
+    } else if (allTokens[i] == "INSERT" && allTokens[i + 1] == "INTO") {
+        vector<string> insertTokens; // Temporary variable to store tokens related to INSERT INTO syntax
+        size_t j = i; // Initialize j to the current index i
 
-            else if (allTokens[i+1] == "COUNT") {
-                if (allTokens[i+2] == "(" && allTokens[i+3] == "*" && allTokens[i+4] == ")") {
-                    countRows();
-                }
+        // Collect tokens for the INSERT INTO statement until a semicolon is encountered
+        while (j < allTokens.size() && allTokens[j] != ";") {
+            insertTokens.push_back(allTokens[j]); // Add the current token to the vector
+            j++; // Increment j to move to the next token
+        }
+        insertIntoTable(insertTokens); // Call the insertIntoTable function to process the collected tokens
+        i = j; // Update i to j to skip the processed tokens in the outer loop
+
+    } else if (allTokens[i] == "DELETE") {
+        vector<string> deleteTokens; // Temporary variable to store tokens related to DELETE statement
+        size_t j = i; // Initialize j to the current index i
+
+        // Collect tokens for the DELETE statement until a semicolon is encountered
+        while (j < allTokens.size() && allTokens[j] != ";") {
+            deleteTokens.push_back(allTokens[j]); // Add the current token to the vector
+            j++; // Increment j to move to the next token
+        }
+        deleteFromTable(deleteTokens); // Call the deleteFromTable function to process the collected tokens
+        i = j; // Update i to j to skip the processed tokens in the outer loop
+
+    } else if (allTokens[i] == "UPDATE") {
+        vector<string> updateTokens; // Temporary variable to store tokens related to UPDATE statement
+        size_t j = i; // Initialize j to the current index i
+
+        // Collect tokens for the UPDATE statement until a semicolon is encountered
+        while (j < allTokens.size() && allTokens[j] != ";") {
+            updateTokens.push_back(allTokens[j]);       // Add the current token to the vector
+            j++;        // Increment j to move to the next token
+        }
+        updateTable(updateTokens); // Call the updateTable function to process the collected tokens
+        i = j;               // Update i to j to skip the processed tokens in the outer loop
+
+    } else if (allTokens[i] == "SELECT") { 
+        if (allTokens[i + 1] == "*" && allTokens[i+2] == "FROM") {   //  if syntax is correct 
+            if (allTokens[i+3] == table.tableName) {  //  if table name and syntax are correct, call selectFromTable function
+                selectFromTable();
+            }
+            else {
+                outputContent.push_back("ERROR: Table does not exist.");  //  if table name does not match, append error message to outputContent
             }
         }
 
-        else if (allTokens[i] == "DATABASES") {
-            auto filePath = filesystem::absolute(INPUTFILE);    
-            outputContent.push_back(filePath.string());
+        else if (allTokens[i+1] == "COUNT") {
+            //  if syntax for COUNT is correct (SELECT (*) FROM table;) then call countRows() function to count number of rows 
+            if (allTokens[i+2] == "(" && allTokens[i+3] == "*" && allTokens[i+4] == ")") {  
+                countRows();
+            }
+        }
+    } else if (allTokens[i] == "DATABASES") {
+        auto filePath = filesystem::absolute(INPUT_FILE);    // get absolute path of input file
+            outputContent.push_back(filePath.string());   //  append absolute path to global outputContent vector
         }
 
         else if (allTokens[i] == "TABLES") {
-            outputContent.push_back(table.tableName);
+            outputContent.push_back(table.tableName);  //  if current token is "TABLES", save table name to global outputContent vector
         }
     }
 }
 
 void createOutputFile(string &fileName) {
-    ostringstream oss;
+    ostringstream oss;  //  oss stream to build output content string
     
     if (fileName.back() == ';') {
-        fileName.pop_back();
+        fileName.pop_back();  //  remove trailing ; from file name
     }
     
-    outputFile.open(fileName);
+    outputFile.open(fileName);  //  open file
     if (outputFile.is_open()) {
         oss << "Output file " << fileName << " created successfully!";
-        outputContent.push_back(oss.str());
+        outputContent.push_back(oss.str());  //  if file creation succeeded, append success message to outputContent vector
     }
     else {
-        outputContent.push_back("Failed to created output file.");
+        outputContent.push_back("ERROR: Failed to created output file.");  //  if file creation failed, append error message to outputContent vector
         return;
     }
 }
 
+//  example content of tokens vector: {"CREATE", "TABLE", "customer", "(", "customer_id", "INT", ",", "customer_name", "TEXT", ",", "customer_city", "TEXT"}
 void createTable(vector<string> &tokens) { 
-    string tableName = tokens[2];
-    ostringstream oss;
+    string tableName = tokens[2];  //  get table name
+    ostringstream oss;  // oss object to build output string
 
     table.tableName = tableName;  //  set tableName in Table struct
     
+    //  loop through tokens to extract column name and column type
     for (size_t i = 4; i < tokens.size(); i+=3) {
         string columnName = tokens[i];
         string columnType = tokens[i+1];
         if (columnType.back() == ',') {
-            columnType.pop_back();
+            columnType.pop_back();  // remove , from column type (example: TEXT, --> TEXT) 
         }
 
+        //  if columnType is anything other than INT or TEXT, append error message to outputContent
         if (columnType != "INT" && columnType != "TEXT") {
             oss << "ERROR: Unsupported column type '" << columnType << "'. " << endl << "Supported types are INT and TEXT.";
             outputContent.push_back(oss.str());
@@ -239,28 +256,33 @@ void createTable(vector<string> &tokens) {
             return;
         }
 
-        Column column = {columnName, columnType};
-        table.tableColumns.push_back(column);
-
+        Column column = {columnName, columnType};  //  initialize column object
+        table.tableColumns.push_back(column);  //  append the column object to tableColumns vector
     }
-    outputContent.push_back("Table creation successful!");
+    outputContent.push_back("");  //  append empty string because table creation does not produce output
 }
 
-void insertIntoTable(vector<string> &tokens) {
-    vector<string> row;
-    auto iterator = find(tokens.begin(), tokens.end(), "VALUES");
 
+//  example content of tokens vector: 
+//  {"INSERT", "INTO", "customer", "(", "customer_id", "INT", ",", "customer_name", 
+//   "TEXT", ",", "customer_city", "TEXT", ")", "VALUES", "(", "1", "'Jack'","'Subang'",")"}
+void insertIntoTable(vector<string> &tokens) {
+    vector<string> row;  //  variable to store new row to be inserted into table 
+    auto iterator = find(tokens.begin(), tokens.end(), "VALUES");  //  find if "VALUES" is found in tokens vector
+
+    //  iterator will return tokens.end() if not found.
     if (iterator == tokens.end() || distance(tokens.begin(), iterator) + 2 >= tokens.size()) {
         outputContent.push_back("Error: VALUES keyword missing or invalid INSERT syntax." );
         return;
     }
 
-    // Directly calculate index after the "VALUES" keyword
+    // Directly calculate index after the "VALUES" keyword. 
     int index = distance(tokens.begin(), iterator) + 2;
 
     // Start from the index after "VALUES" and collect valid values
     for (size_t i = index; i < tokens.size(); i++) {
         if (tokens[i] != "," && tokens[i] != ")" && !tokens[i].empty()) {
+            //  if tokens[i] is not , and is not ) and is not empty, append tokens[i] to row vector
             row.push_back(tokens[i]);
         }
     }
@@ -271,8 +293,8 @@ void insertIntoTable(vector<string> &tokens) {
         return;
     }
 
-    table.tableRows.push_back(row);
-    outputContent.push_back("");
+    table.tableRows.push_back(row);       //  append newly created row to tableRows vector
+    outputContent.push_back("");  //  append empty string to outputContent because table insertion does not produce output.
 }
 
 void selectFromTable() {
@@ -281,27 +303,27 @@ void selectFromTable() {
         return;
     }
 
-    ostringstream oss;
+    ostringstream oss;  // oss for building output string
 
     // Print rows
     for (size_t i = 0; i < table.tableRows.size(); i++) {
-        if (i == 0) {
+        if (i == 0) {  //  print table headers for first row only
             for (size_t i = 0; i < table.tableColumns.size(); i++) {
                 oss << table.tableColumns[i].columnName;
                 if (i + 1 < table.tableColumns.size()) {
-                    oss << ",";
+                    oss << ",";     //  add , at the end of each token except for the last one of each line
                 }
             }
         }
-        oss << "\n";
+        oss << "\n";  //  start new line after table headers
         for (size_t j = 0; j < table.tableRows[i].size(); j++) {
             if (table.tableColumns[j].columnType == "TEXT") {
-                oss << removeQuotesFromStringLit(table.tableRows[i][j]);
+                oss << removeQuotesFromStringLit(table.tableRows[i][j]);  // removes quotes from string literals so that the output for TEXT is without '' 
             } else {
-                oss << table.tableRows[i][j];
+                oss << table.tableRows[i][j]; 
             }
             if (j + 1 < table.tableRows[i].size()) {
-                oss << ",";
+                oss << ",";  //  add , at the end of each token except for the last one of each line
             }
         }
     }
@@ -309,7 +331,7 @@ void selectFromTable() {
     oss.clear();
 }
 
-
+//  helper function that removes '' from string literals. 
 string removeQuotesFromStringLit(string& str) {
     if (str.front() == '\'' && str.back() == '\'') {
         return str.substr(1, str.size() - 2);
@@ -318,21 +340,11 @@ string removeQuotesFromStringLit(string& str) {
 }
 
 void updateTable(vector<string>& tokens) {
-    for (int i = 0; i < tokens.size(); i++) {
-        cout << "Update Table Token [" << i << "]: " << tokens[i] << endl;
-    }
 
-// Update Table Token [0]: UPDATE
-// Update Table Token [1]: customer
-// Update Table Token [2]: SET
-// Update Table Token [3]: customer_email='email333'
-// Update Table Token [4]: WHERE
-// Update Table Token [5]: customer_id=3
+    auto itSet = find(tokens.begin(), tokens.end(), "SET");  //  find location of "SET" in tokens
+    auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");  //  find location of WHERE in tokens
 
-
-    auto itSet = find(tokens.begin(), tokens.end(), "SET");
-    auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
-
+    //  if SET and WHERE are not in tokens, append error message and exit
     if (itSet == tokens.end() || itWhere == tokens.end()) {
         outputContent.push_back("ERROR: Invalid UPDATE syntax.");
         return;
@@ -344,18 +356,18 @@ void updateTable(vector<string>& tokens) {
         return;
     }
 
-    tuple<string, string> setParts = extractValuesFromEqualSign(tokens[3]);
-    string columnUpdate; //  customer_email 
-    string newValue;     //  'email3333'
-    tie(columnUpdate, newValue) = setParts;
+    tuple<string, string> setParts = extractValuesFromEqualSign(tokens[3]); //  call extractValuesFromEqualSign function, passing in SET condition
+    string columnUpdate; 
+    string newValue;    
+    tie(columnUpdate, newValue) = setParts;  //  assign columnUpdate to first value in tuple, newValue to second value in tuple
 
-    tuple<string, string> whereParts = extractValuesFromEqualSign(tokens[5]);
-    string conditionColumn;   // customer_id 
-    string conditionValue;    // "3"
-    tie(conditionColumn, conditionValue) = whereParts;
+    tuple<string, string> whereParts = extractValuesFromEqualSign(tokens[5]);  // call extractValuesFromEqualSign function, passing in WHERE condition
+    string conditionColumn;   
+    string conditionValue;  
+    tie(conditionColumn, conditionValue) = whereParts;  //  assign conditionColumn to first value in tuple, conditionValue to second value in tuple
 
-    newValue = removeQuotesFromStringLit(newValue);
-    conditionValue = removeQuotesFromStringLit(conditionValue);
+    newValue = removeQuotesFromStringLit(newValue);  //  remove '' from newValue
+    conditionValue = removeQuotesFromStringLit(conditionValue);  // remove '' from newValue
 
     int updateColumnIndex = -1, conditionColumnIndex = -1;
 
@@ -376,19 +388,20 @@ void updateTable(vector<string>& tokens) {
             updated = true;
         }
     }
-
-    outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
-}
+     //  if table was updated, append empty string because update operation does not produce output.
+     //  if table was not updated, append "No matching rows found for update."
+    outputContent.push_back(updated ? "" : "No matching rows found for update."); }
 
 
 void deleteFromTable(vector<string>& tokens) {
     auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
-    if (itWhere == tokens.end()) { 
+    if (itWhere == tokens.end()) {  //  if "WHERE" is not found in tokens, append error message to outputContent and exit 
         outputContent.push_back("ERROR: Invalid DELETE syntax.");
         return;
     }
 
     string tableName = tokens[2]; 
+    //  if table specified in DELETE clause is not the table name, append error message and exit
     if (tableName != table.tableName) {
         outputContent.push_back("ERROR: Table '" + tableName + "' does not exist.");
         return;
@@ -396,10 +409,10 @@ void deleteFromTable(vector<string>& tokens) {
 
     string columnName;
     string conditionValue;
-    tuple<string, string> whereParts = extractValuesFromEqualSign(tokens[4]);
-    tie(columnName, conditionValue) = whereParts;
+    tuple<string, string> whereParts = extractValuesFromEqualSign(tokens[4]);  // extract value on either side of = in WHERE clause 
+    tie(columnName, conditionValue) = whereParts;  // assign columnName to first value in tuple, conditionValue to second value in tuple
 
-    conditionValue = removeQuotesFromStringLit(conditionValue);
+    conditionValue = removeQuotesFromStringLit(conditionValue);  // remove '' from conditionValue
 
     int columnIndex = -1;
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
@@ -422,39 +435,40 @@ void deleteFromTable(vector<string>& tokens) {
     outputContent.push_back((table.tableRows.size() < oldSize) ? "Table deletion successful!" : "No matching rows found for deletion.");
 }
 
-
+//  helper function to extract token on either side of '=' char
+//  this function assumes that there is no space on either side of '=' char
 tuple<string, string> extractValuesFromEqualSign(string& str) {
-    size_t equalPos = str.find('=');
-    string part1 = str.substr(0, equalPos);
-    string part2 = str.substr(equalPos + 1);
+    size_t equalPos = str.find('=');  //  get index of =
+    string part1 = str.substr(0, equalPos);  //  get the token on the left side of =
+    string part2 = str.substr(equalPos + 1);  //  get the token on the right side of =
 
-    return tuple<string, string>(part1, part2);
+    return tuple<string, string>(part1, part2);   //  returns tuple of 2 strings
 }
-
 
 void countRows() {
-  ostringstream oss;
-  oss << table.tableRows.size();
-  outputContent.push_back(oss.str());
-  oss.clear();
+    ostringstream oss;
+    oss << table.tableRows.size();  //  get the size of tableRows
+    outputContent.push_back(oss.str());  //  append number of rows to outputContent
+    oss.clear();
 }
 
-
+//  helper function to check if data types match
+//  mechanism: TEXT values must be enclosed within ''.
+//             INT values must not be enclosed within ''.
 bool validateRowData(const vector<string> &row) {
     for (int i = 0; i < table.tableColumns.size(); i++) {
         string columnType = table.tableColumns[i].columnType;
-        string rowValue = row[i];
+        string rowValue = row[i]; 
 
         if (columnType == "INT") {
-            bool isInt = isInteger(rowValue);
+            bool isInt = isInteger(rowValue);  // call helper function isInteger to validate if rowValue is INT
             if (!isInt) {
-                cerr << "ERROR: Mismatching data types at column " << i + 1 << ". Expected INT type but got '" << rowValue << "'" << endl;
                 return false;
             }
         }
         else if (columnType == "TEXT") {
+            //  if rowValue is not enclosed within '', return false  
             if (rowValue.front() != '\'' && rowValue.back() != '\'') {
-                cerr << "ERROR: Mismatching data types at column " << i + 1 << ". Expected TEXT but got '" << rowValue << "'" << endl;
                 return false;
             }
         }
@@ -462,47 +476,47 @@ bool validateRowData(const vector<string> &row) {
     return true;
 }
 
+//  helper function to check if a value entered is an integer
 bool isInteger(const string& value) {
     if (value.empty()) return false;
 
-    size_t start = (value[0] == '-') ? 1 : 0;    // ternary operator
+    size_t start = (value[0] == '-') ? 1 : 0;    // check if it starts with - to allow for negative integers
 
     for (int i = start; i < value.size(); i++) {
         if (!isdigit(value[i])) {
-            return false;
+            return false;  //  loop through value, if value is not a digit, return false to indicate that it is not integer
         }
     }
-    return true;
+    return true;  //  if every character in value is digit, return true to indicate it is integer
 }
 
-void getInputCommand() {
-    inputFile.open(INPUTFILE);
-    string line;
-    string buffer;
+//  Function to save each input into global inputContent vector
+void getInputCommands() {
+    inputFile.open(INPUT_FILE);   //  open input file
+    string line;  // variable to hold each line
+    string buffer;  //  variable to store line and "\n"
 
-    while (getline(inputFile, line)) {
-        if (line.empty()) continue;
-        buffer += line + "\n";
+    while (getline(inputFile, line)) {  //  read by line
+        if (line.empty()) continue;     //  skip empty lines
+        buffer += line + "\n";          //  save each line along with a new line character to buffer
 
-        if (line.find(";") != std::string::npos) {
+        //  if ";" is found in line, append buffer to global inputContent vector
+        if (line.find(";") != std::string::npos) { 
             inputContent.push_back(buffer);
-            buffer.clear();
+            buffer.clear();  //  clear buffer after appending
         }
     }
-    inputFile.close();
+    inputFile.close();   //  close input file after processing
 }
 
-
+//  Function to write output to output file
 void writeToOutputFile() {
-    getInputCommand();
 
+    getInputCommands();  //  call getInputCommands function to get all the inputs
     int inputContentSize = inputContent.size();     
-    int outputContentSize = outputContent.size();
 
-    for (int i = 0; i < inputContentSize; i++) {
-
-        outputFile << "> " << inputContent[i];
-        outputFile << outputContent[i] << "\n";
-         
+    for (int i = 0; i < inputContentSize; i++) {  
+        outputFile << "> " << inputContent[i];   //  display each input with a leading "> "
+        outputFile << outputContent[i] << "\n";  //  display corresponding output
     }
 }

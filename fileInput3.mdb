@@ -1,0 +1,33 @@
+CREATE fileOutput3.txt;
+DATABASES;
+
+CREATE TABLE products(
+    product_id INT,
+    product_name TEXT, 
+    product_description TEXT, 
+    product_origin TEXT 
+);
+
+INSERT INTO products(
+    product_id,
+    product_name, 
+    product_description, 
+    product_origin
+) VALUES (
+    1, 'tablet', 'gaming', 'KL'
+);
+
+INSERT INTO products(
+    product_id,
+    product_name, 
+    product_description, 
+    product_origin
+) VALUES (
+    2, 'laptop', 'assignment', 'USA'
+);
+
+SELECT * FROM products;
+SELECT COUNT(*) FROM products;
+UPDATE products SET product_name='computer' WHERE product_id=2;
+SELECT * FROM products;
+TABLES;
