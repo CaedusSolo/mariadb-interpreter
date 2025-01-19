@@ -11,7 +11,6 @@ customer_phone TEXT,
 customer_email TEXT 
 ); 
 
-
 INSERT INTO  
 customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom 
 er_phone,customer_email) VALUES (1,'name1','city1','state1','country1','phone1','email1'); 
@@ -23,7 +22,6 @@ customer(customer_id,customer_name,customer_city,customer_state,customer_country
 INSERT INTO  
 customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom 
 er_phone,customer_email) VALUES (4,'name4','city4','state4','country4','phone4','email4'); 
-
 
 SELECT * FROM customer; 
 TABLES; 

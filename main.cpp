@@ -8,10 +8,9 @@
 //  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my | 011-10988658
 //  ************************************************************************************************
 //  Task Distribution
-//  Member_1: Read input file, tokenization, create table, insert into table
-//  Member_2: Delete from table, update table, count table rows, write to output file
+//  Member_1: Read input file, tokenization, create table, insert into table, write to output file
+//  Member_2: Delete from table, update table, count table rows, flowchart
 //  ************************************************************************************************
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -20,6 +19,7 @@
 #include <cctype>
 #include <algorithm>
 #include <typeinfo>
+#include <filesystem>
 using namespace std;
 
 ifstream inputFile;
@@ -36,7 +36,10 @@ struct Table {
     vector<vector<string>> tableRows;
 };
 
+vector<string> inputContent;
+vector<string> outputContent;
 
+//  function prototypes
 vector<string> tokenize(const string&);
 void readFileInput();
 void createOutputFile(string&);
@@ -44,13 +47,12 @@ void createTable(vector<string> &);
 void insertIntoTable(vector<string> &);
 void updateTable(vector<string>&);
 void deleteFromTable(vector<string>&);
-void countRows(vector<string>& tokens);
+void countRows();
 void selectFromTable();
 bool validateRowData(const vector<string>&);
 bool isInteger(const string&);
 string removeQuotesFromStringLit(string &);
-
-void OutputFile();
+void writeToOutputFile();
 
 
 Table table;
@@ -101,14 +103,14 @@ vector<string> tokenize(const string& input) {
     return tokens;
 }
 
-
 int main() {
     readFileInput();
+    writeToOutputFile();
     return 0;
 }
 
 void readFileInput() {
-    inputFile.open("fileInput2.mdb");
+    inputFile.open("fileInput1.mdb");
     if (!inputFile.is_open()) {
         cerr << "Error opening input file." << endl;
         return;
@@ -156,9 +158,8 @@ void readFileInput() {
             deleteFromTable(deleteTokens);
             i = j;
             
-        } else if (allTokens[i] == "SELECT") {
-            OutputFile();
-        } else if (allTokens[i] == "UPDATE") {
+        } 
+         else if (allTokens[i] == "UPDATE") {
             vector<string> updateTokens;
             size_t j = i;
 
@@ -169,26 +170,56 @@ void readFileInput() {
             updateTable(updateTokens);
             i = j;
         }
+
+        else if (allTokens[i] == "SELECT") {
+            if (allTokens[i + 1] == "*" && allTokens[i+2] == "FROM") {
+                if (allTokens[i+3] == table.tableName) {
+                    selectFromTable();
+                }
+                else {
+                    outputContent.push_back("Table does not exist.");
+                }
+            }
+
+            else if (allTokens[i+1] == "COUNT") {
+                if (allTokens[i+2] == "(" && allTokens[i+3] == "*" && allTokens[i+4] == ")") {
+                    countRows();
+                }
+            }
+        }
+
+        else if (allTokens[i] == "DATABASES") {
+            auto filePath = filesystem::absolute("fileInput2.mdb");    
+            outputContent.push_back(filePath.string());
+        }
+
+        else if (allTokens[i] == "TABLES") {
+            outputContent.push_back(table.tableName);
+        }
     }
 }
 
 void createOutputFile(string &fileName) {
+    ostringstream oss;
+    
     if (fileName.back() == ';') {
         fileName.pop_back();
     }
     
     outputFile.open(fileName);
     if (outputFile.is_open()) {
-        cout << "Output file: " << fileName << " created successfully." << endl;
+        oss << "Output file " << fileName << " created successfully!";
+        outputContent.push_back(oss.str());
     }
     else {
-        cerr << "Failed to create output file." << endl;
+        outputContent.push_back("Failed to created output file.");
         return;
     }
 }
 
 void createTable(vector<string> &tokens) { 
     string tableName = tokens[2];
+    ostringstream oss;
 
     table.tableName = tableName;  //  set tableName in Table struct
     
@@ -200,61 +231,25 @@ void createTable(vector<string> &tokens) {
         }
 
         if (columnType != "INT" && columnType != "TEXT") {
-            cerr << "ERROR: Unsupported column type '" << columnType << "'. " << endl << "Supported types are INT and TEXT." << endl;
+            oss << "ERROR: Unsupported column type '" << columnType << "'. " << endl << "Supported types are INT and TEXT.";
+            outputContent.push_back(oss.str());
+            oss.clear();
             return;
         }
 
         Column column = {columnName, columnType};
         table.tableColumns.push_back(column);
+
     }
+    outputContent.push_back("Table creation successful!");
 }
 
 void insertIntoTable(vector<string> &tokens) {
-    // for (size_t i = 0; i < tokens.size(); i++) {
-    //     cout << "insertIntoTable Token: " << tokens[i] << endl;
-    // }      
-
-    //  output for above for loop:
-
-// insertIntoTable Token: INSERT
-// insertIntoTable Token: INTO
-// insertIntoTable Token: customer
-// insertIntoTable Token: (
-// insertIntoTable Token: customer_id
-// insertIntoTable Token: ,
-// insertIntoTable Token: customer_name
-// insertIntoTable Token: ,
-// insertIntoTable Token: customer_city
-// insertIntoTable Token: ,
-// insertIntoTable Token: customer_state
-// insertIntoTable Token: ,
-// insertIntoTable Token: customer_country
-// insertIntoTable Token: ,
-// insertIntoTable Token: customer_phone
-// insertIntoTable Token: ,
-// insertIntoTable Token: customer_email
-// insertIntoTable Token: )
-// insertIntoTable Token: VALUES
-// insertIntoTable Token: (
-// insertIntoTable Token: 1
-// insertIntoTable Token: ,
-// insertIntoTable Token: 'name1'
-// insertIntoTable Token: ,
-// insertIntoTable Token: 'city1'
-// insertIntoTable Token: ,
-// insertIntoTable Token: 'state1'
-// insertIntoTable Token: ,
-// insertIntoTable Token: 'country1'
-// insertIntoTable Token: ,
-// insertIntoTable Token: 'phone1'
-// insertIntoTable Token: ,
-// insertIntoTable Token: 'email1'
-// insertIntoTable Token: )
     vector<string> row;
     auto iterator = find(tokens.begin(), tokens.end(), "VALUES");
 
     if (iterator == tokens.end() || distance(tokens.begin(), iterator) + 2 >= tokens.size()) {
-        cerr << "Error: VALUES keyword missing or invalid INSERT syntax." << endl;
+        outputContent.push_back("Error: VALUES keyword missing or invalid INSERT syntax." );
         return;
     }
 
@@ -270,74 +265,58 @@ void insertIntoTable(vector<string> &tokens) {
 
     // Validate the row data based on column types
     if (!validateRowData(row)) {
-        cerr << "Invalid data types in row. Insert operation aborted." << endl;
+        outputContent.push_back("Invalid data types in row. Insert operation aborted.");
         return;
     }
 
-    // Now, insert the row into table's rows
     table.tableRows.push_back(row);
-
- // for (int i = 0; i < row.size(); i++) {
- //     cout << "Row token: " << row[i] << endl;
-//     cout << "Column In Table: " << table.tableColumns[i].columnName << endl;
-// }
-// Output of above for loop:
-// Row token: 1
-// Row token: 'name1'
-// Row token: 'city1'
-// Row token: 'state1'
-// Row token: 'country1'
-// Row token: 'phone1'
-// Row token: 'email1'
-
-    // for (const Column& col : table.tableColumns) {
-    //     cout << "Column in Table: " << col.columnName << endl;
-    // }
-
-    
-// Column in Table: customer_id
-// Column in Table: customer_name
-// Column in Table: customer_city
-// Column in Table: customer_state
-// Column in Table: customer_country
-// Column in Table: customer_phone
-// Column in Table: customer_email
+    outputContent.push_back("");
 }
 
 void selectFromTable() {
     if (table.tableName.empty()) {
-        cerr << "No table has been created." << endl;
+        outputContent.push_back("The table does not exist.");
         return;
     }
 
-    // if (table.tableRows.empty()) {
-    //     cerr << "Table does not have any values." << endl;
-    //     return;
+    ostringstream oss;
+
+    // // Print column headers
+    // for (size_t i = 0; i < table.tableColumns.size(); i++) {
+    //     oss << table.tableColumns[i].columnName;
+    //     if (i + 1 < table.tableColumns.size()) {
+    //         oss << ",";
+    //     }
     // }
+    // outputContent.push_back(oss.str()); // Store column names as CSV
+    // oss.clear();
 
-    for (size_t i = 0; i < table.tableColumns.size(); i++) {
-        cout << table.tableColumns[i].columnName;
-        if (i + 1 < table.tableColumns.size()) { // Only add a comma if not the last element
-            cout << ",";
-        }
-    }
-    cout << endl;
-
+    // Print rows
     for (size_t i = 0; i < table.tableRows.size(); i++) {
+        if (i == 0) {
+            for (size_t i = 0; i < table.tableColumns.size(); i++) {
+                oss << table.tableColumns[i].columnName;
+                if (i + 1 < table.tableColumns.size()) {
+                    oss << ",";
+                }
+            }
+        }
+        oss << "\n";
         for (size_t j = 0; j < table.tableRows[i].size(); j++) {
             if (table.tableColumns[j].columnType == "TEXT") {
-                cout << removeQuotesFromStringLit(table.tableRows[i][j]);
+                oss << removeQuotesFromStringLit(table.tableRows[i][j]);
+            } else {
+                oss << table.tableRows[i][j];
             }
-            else {
-                cout << table.tableRows[i][j];
-            }
-            if (j + 1 < table.tableRows[i].size()) { // Only add a comma if not the last element
-                cout << ",";
+            if (j + 1 < table.tableRows[i].size()) {
+                oss << ",";
             }
         }
-        cout << endl;
     }
+    outputContent.push_back(oss.str()); // Store row as CSV
+    oss.clear();
 }
+
 
 string removeQuotesFromStringLit(string& str) {
     if (str.front() == '\'' && str.back() == '\'') {
@@ -347,85 +326,72 @@ string removeQuotesFromStringLit(string& str) {
 }
 
 void updateTable(vector<string>& tokens) {
-    if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
-        cerr << "ERROR: Missing WHERE clause" << endl;
+    auto itSet = find(tokens.begin(), tokens.end(), "SET");
+    auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
+
+    if (itSet == tokens.end() || itWhere == tokens.end() || distance(itSet, itWhere) < 3) {
+        outputContent.push_back("ERROR: Invalid UPDATE syntax.");
         return;
     }
 
-    string columnUpdate, newValue, conditionColumn, conditionValue;
-
-    for (size_t i = 0; i < tokens.size(); ++i) {
-        if (tokens[i] == "SET") {
-            columnUpdate = tokens[i + 1].substr(0, tokens[i + 1].find('='));
-            newValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
-
-            if (newValue.front() == '\'' && newValue.back() == '\'') {
-                newValue = newValue.substr(1, newValue.size() - 2); // Remove quotes for internal processing
-            }
-        } else if (tokens[i] == "WHERE") {
-            conditionColumn = tokens[i + 1].substr(0, tokens[i + 1].find('='));
-            conditionValue = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
-
-            if (conditionValue.front() == '\'' && conditionValue.back() == '\'') {
-                conditionValue = conditionValue.substr(1, conditionValue.size() - 2); // Remove quotes for internal processing
-            }
-        }
+    string tableName = tokens[1]; // Get table name
+    if (tableName != table.tableName) {
+        outputContent.push_back("ERROR: Table '" + tableName + "' does not exist.");
+        return;
     }
 
-    size_t updateColumnIndex = -1, conditionColumnIndex = -1;
+    string columnUpdate = *(itSet + 1);
+    string newValue = *(itSet + 3);
+    string conditionColumn = *(itWhere + 1);
+    string conditionValue = *(itWhere + 3);
+
+    newValue = removeQuotesFromStringLit(newValue);
+    conditionValue = removeQuotesFromStringLit(conditionValue);
+
+    int updateColumnIndex = -1, conditionColumnIndex = -1;
 
     for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-        if (table.tableColumns[i].columnName == columnUpdate) {
-            updateColumnIndex = i;
-        }
-        if (table.tableColumns[i].columnName == conditionColumn) {
-            conditionColumnIndex = i;
-        }
+        if (table.tableColumns[i].columnName == columnUpdate) updateColumnIndex = i;
+        if (table.tableColumns[i].columnName == conditionColumn) conditionColumnIndex = i;
+    }
+
+    if (updateColumnIndex == -1 || conditionColumnIndex == -1) {
+        outputContent.push_back("ERROR: Invalid column name in UPDATE statement.");
+        return;
     }
 
     bool updated = false;
-
-    if (updateColumnIndex != -1 && conditionColumnIndex != -1) {
-        for (auto& row : table.tableRows) {
-            if (row[conditionColumnIndex] == conditionValue) {
-                row[updateColumnIndex] = newValue;
-                updated = true;
-            }
+    for (auto& row : table.tableRows) {
+        if (row[conditionColumnIndex] == conditionValue) {
+            row[updateColumnIndex] = newValue;
+            updated = true;
         }
     }
 
-
-    outputFile << "> UPDATE " << table.tableName << " SET " << columnUpdate << "=" << "'" << newValue << "'" << " WHERE " << conditionColumn << "=" << "'" << conditionValue << "';" << endl;
-
-  
+    outputContent.push_back(updated ? "Table update successful!" : "No matching rows found for update.");
 }
 
-void deleteFromTable(vector<string>& tokens) {
 
-    if (find(tokens.begin(), tokens.end(), "WHERE") == tokens.end()) {  // if "WHERE" is not found, terminate operation
-        cerr << "ERROR: Missing WHERE clause" << endl;
+void deleteFromTable(vector<string>& tokens) {
+    auto itWhere = find(tokens.begin(), tokens.end(), "WHERE");
+    if (itWhere == tokens.end() || distance(itWhere, tokens.end()) < 4) { 
+        outputContent.push_back("ERROR: Invalid DELETE syntax.");
         return;
     }
 
-    string columnName, values;
-
-    
-    for (size_t i = 0; i < tokens.size(); ++i) {
-
-        if (tokens[i] == "WHERE") {
-            columnName = tokens[i + 1].substr(0, tokens[i + 1].find('='));
-            values = tokens[i + 1].substr(tokens[i + 1].find('=') + 1);
-
-            if (values.front() == '\'' && values.back() == '\'') {
-                values = values.substr(1, values.size() - 2); 
-            }
-            break;
-        }
+    string tableName = tokens[2]; 
+    if (tableName != table.tableName) {
+        outputContent.push_back("ERROR: Table '" + tableName + "' does not exist.");
+        return;
     }
 
-    size_t columnIndex = -1;
-    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
+    string columnName = *(itWhere + 1);
+    string conditionValue = *(itWhere + 3);
 
+    conditionValue = removeQuotesFromStringLit(conditionValue);
+
+    int columnIndex = -1;
+    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
         if (table.tableColumns[i].columnName == columnName) {
             columnIndex = i;
             break;
@@ -433,66 +399,26 @@ void deleteFromTable(vector<string>& tokens) {
     }
 
     if (columnIndex == -1) {
-
-        cout << "Did not find this column " << columnName << endl;
+        outputContent.push_back("ERROR: Column not found in DELETE statement.");
         return;
     }
 
- 
-    table.tableRows.erase(
-        remove_if(table.tableRows.begin(), table.tableRows.end(),
-                  [&](const vector<string>& row) { return row[columnIndex] == values; }),
-        table.tableRows.end()
-    );
-   outputFile << "> DELETE FROM " << table.tableName << " WHERE " << columnName << "=" << "'" << values << "';" << endl;
-}
+    size_t oldSize = table.tableRows.size();
+    table.tableRows.erase(remove_if(table.tableRows.begin(), table.tableRows.end(),
+                                    [&](const vector<string>& row) { return row[columnIndex] == conditionValue; }),
+                          table.tableRows.end());
 
-void countRows(vector<string>& tokens) {
-    if (tokens.size() >= 4 && tokens[0] == "SELECT" && tokens[1] == "COUNT(*)" && tokens[2] == "FROM") {
-        string tableName = tokens[3];
-
-        if (tableName == table.tableName) {
-            cout << table.tableRows.size() << endl;  
-
-        } else {
-            cout << "ERROR: Table '" << tableName << "' does not exist." << endl;
-            return;
-        }
-
-    } else {
-        cout << "Cannot Count" << endl;
-    }
-    outputFile << "> SELECT COUNT(*) FROM " << table.tableName << endl;
+    outputContent.push_back((table.tableRows.size() < oldSize) ? "Table deletion successful!" : "No matching rows found for deletion.");
 }
 
 
-void OutputFile() {
-    if (!outputFile.is_open()) {
-        cerr << "Output file is not open!" << endl;
-        return;
-    }
-
-    outputFile << "> SELECT * FROM " << table.tableName << "; " << endl;
-
-    for (size_t i = 0; i < table.tableColumns.size(); ++i) {
-        outputFile << table.tableColumns[i].columnName;
-        if (i != table.tableColumns.size() - 1) {
-            outputFile << ",";
-        }
-    }
-    outputFile << endl;
-
-   
-    for (const auto& row : table.tableRows) {
-        for (size_t i = 0; i < row.size(); ++i) {
-            outputFile << row[i];
-            if (i != row.size() - 1) {
-                outputFile << ",";
-            }
-        }
-        outputFile << endl;
-    }
+void countRows() {
+  ostringstream oss;
+  oss << table.tableRows.size();
+  outputContent.push_back(oss.str());
+  oss.clear();
 }
+
 
 bool validateRowData(const vector<string> &row) {
     for (int i = 0; i < table.tableColumns.size(); i++) {
@@ -527,4 +453,43 @@ bool isInteger(const string& value) {
         }
     }
     return true;
+}
+
+void getInputCommand() {
+    inputFile.open("fileInput1.mdb");
+    string line;
+    string buffer;
+
+    while (getline(inputFile, line)) {
+        if (line.empty()) continue;
+        buffer += line + "\n";
+
+        if (line.find(";") != std::string::npos) {
+            inputContent.push_back(buffer);
+            buffer.clear();
+        }
+    }
+    for (int i = 0; i < inputContent.size(); i++) {
+        cout << "Debug: InputContent[" << i << "] = " << inputContent[i] << endl;
+    }
+    inputFile.close();
+}
+
+
+void writeToOutputFile() {
+    getInputCommand();
+
+    for (int i = 0; i < outputContent.size(); i++) {
+        cout << "Debug: OutputContent[" << i << "] = " << outputContent[i] << endl;
+    }
+
+    int inputContentSize = inputContent.size();     
+    int outputContentSize = outputContent.size();
+
+    for (int i = 0; i < inputContentSize; i++) {
+
+        outputFile << "> " << inputContent[i];
+        outputFile << outputContent[i] << "\n";
+         
+    }
 }
