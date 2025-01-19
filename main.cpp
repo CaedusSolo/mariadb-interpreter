@@ -293,6 +293,11 @@ void insertIntoTable(vector<string> &tokens) {
         return;
     }
 
+    if (table.tableRows.size() == 10) {  //  if table already has 10 rows, append error message to outputContent
+        outputContent.push_back("ERROR: Table is already at maximum size of 10 rows.");
+        return;
+    }
+    
     table.tableRows.push_back(row);       //  append newly created row to tableRows vector
     outputContent.push_back("");  //  append empty string to outputContent because table insertion does not produce output.
 }
