@@ -272,7 +272,7 @@ void insertIntoTable(vector<string> &tokens) {
 
     //  iterator will return tokens.end() if not found.
     if (iterator == tokens.end() || distance(tokens.begin(), iterator) + 2 >= tokens.size()) {
-        outputContent.push_back("Error: VALUES keyword missing or invalid INSERT syntax." );
+        outputContent.push_back("ERROR: VALUES keyword missing or invalid INSERT syntax." );
         return;
     }
 
@@ -289,7 +289,12 @@ void insertIntoTable(vector<string> &tokens) {
 
     // Validate the row data based on column types
     if (!validateRowData(row)) {
-        outputContent.push_back("Invalid data types in row. Insert operation aborted.");
+        outputContent.push_back("ERROR: Invalid data types in row. Insert operation aborted.");
+        return;
+    }
+
+    if (table.tableRows.size() == 10) {
+        outputContent.push_back("ERROR: Table is at maximum size of 10 rows.");
         return;
     }
 
@@ -299,7 +304,7 @@ void insertIntoTable(vector<string> &tokens) {
 
 void selectFromTable() {
     if (table.tableName.empty()) {
-        outputContent.push_back("The table does not exist.");
+        outputContent.push_back("ERROR: The table does not exist.");
         return;
     }
 
@@ -432,7 +437,7 @@ void deleteFromTable(vector<string>& tokens) {
                                      [&](const std::vector<std::string>& row) { return row[columnIndex] == conditionValue; }),
                           table.tableRows.end());
 
-    outputContent.push_back((table.tableRows.size() < oldSize) ? "Table deletion successful!" : "No matching rows found for deletion.");
+    outputContent.push_back((table.tableRows.size() < oldSize) ? "" : "No matching rows found for deletion.");
 }
 
 //  helper function to extract token on either side of '=' char
