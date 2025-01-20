@@ -26,8 +26,19 @@ INSERT INTO products(
     2, 'laptop', 'assignment', 'USA'
 );
 
+INSERT INTO products(
+    product_id,
+    product_name, 
+    product_description, 
+    product_origin
+) VALUES (
+    3, 'alexa', 'assistant', 'USA'
+);
+
 SELECT * FROM products;
 SELECT COUNT(*) FROM products;
 UPDATE products SET product_name='computer' WHERE product_id=2;
 SELECT * FROM products;
 TABLES;
+DELETE FROM products WHERE product_id=3;
+SELECT * FROM products;

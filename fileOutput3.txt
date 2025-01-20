@@ -27,17 +27,34 @@ c:\Users\USER\Desktop\Programming Fundamentals\Assignment\fileInput3.mdb
     2, 'laptop', 'assignment', 'USA'
 );
 
+> INSERT INTO products(
+    product_id,
+    product_name, 
+    product_description, 
+    product_origin
+) VALUES (
+    3, 'alexa', 'assistant', 'USA'
+);
+
 > SELECT * FROM products;
 product_id,product_name,product_description,product_origin
 1,tablet,gaming,KL
 2,laptop,assignment,USA
+3,alexa,assistant,USA
 > SELECT COUNT(*) FROM products;
-2
+3
 > UPDATE products SET product_name='computer' WHERE product_id=2;
 
 > SELECT * FROM products;
 product_id,product_name,product_description,product_origin
 1,tablet,gaming,KL
 2,computer,assignment,USA
+3,alexa,assistant,USA
 > TABLES;
 products
+> DELETE FROM products WHERE product_id=3;
+
+> SELECT * FROM products;
+product_id,product_name,product_description,product_origin
+1,tablet,gaming,KL
+2,computer,assignment,USA
