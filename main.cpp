@@ -4,12 +4,12 @@
 //  Lecture Class: TC1L
 //  Tutorial Class: TT1L
 //  Trimester: 2430
-//  Member_1: 242UC244NK | CHOW YING TONG | chow.ying.tong@student.mmu.edu.my | 016-5767692
-//  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my | 011-10988658
+//  Member_1: 242UC244NK | CHOW YING TONG | chow.ying.tong@student.mmu.edu.my 
+//  Member_2: 242UC244NK | LAW CHIN XUAN | law.chin.xuan@student.mmu.edu.my 
 //  ************************************************************************************************
 //  Task Distribution
-//  Member_1: Read input file, tokenization, create table, insert into table, write to output file, parts of update table
-//  Member_2: Delete from table, count table rows, parts of update table, flowchart, pseudocode
+//  Member_1: Read input file, tokenization, create table, insert into table, delete from table, write to output file, parts of update table
+//  Member_2: Count table rows, parts of update table, pseudocode
 //  ************************************************************************************************
 #include <iostream>
 #include <fstream>
